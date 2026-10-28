@@ -1,5 +1,5 @@
 // Cedi Ledger service worker: keeps the app working offline.
-const VERSION = "cedi-ledger-v9";
+const VERSION = "cedi-ledger-v10";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./jspdf.umd.min.js",
   "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./config.js", "./supabase.min.js"];
 // Files that change when the app is updated or reconfigured: always try the network first.
