@@ -29,7 +29,6 @@
   --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.05);
   --f-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif;
   --f-body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
-  --f-mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
   color-scheme:light;
 }
 
@@ -41,7 +40,9 @@ img{max-width:100%}
 [hidden]{display:none!important}
 button,input,select,textarea{font:inherit;color:inherit}
 .num{font-variant-numeric:tabular-nums}
-.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.mono{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+svg text{font-family:var(--f-body);font-variant-numeric:tabular-nums}
+input,select,textarea,button{font-family:var(--f-body)}
 h1,h2,h3{font-family:var(--f-display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:-.015em}
 :focus-visible{outline:2px solid var(--pink-deep);outline-offset:2px;border-radius:6px}
 
@@ -59,7 +60,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:700;margin:0;text-wrap:balance
 .nav a[aria-current="page"]{background:var(--pink-soft);color:var(--ink)}
 .nav a[aria-current="page"] svg{color:var(--pink-deep)}
 .nav svg{width:19px;height:19px;flex:none}
-.nav .count{margin-left:auto;font-family:var(--f-mono);font-size:12px;background:var(--butter);color:#3d3830;border-radius:8px;padding:0 7px}
+.nav .count{margin-left:auto;font-family:var(--f-body);font-size:12px;background:var(--butter);color:#3d3830;border-radius:8px;padding:0 7px}
 .rail-foot{margin-top:auto;font-size:12px;color:var(--muted);padding:0 8px}
 
 main{min-width:0;padding-block:26px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -116,13 +117,13 @@ a.sub{color:var(--pink-deep);font-weight:700;text-decoration:none}
 .donut-legend div{display:grid;grid-template-columns:12px minmax(0,1fr) auto auto;gap:9px;align-items:center}
 .donut-legend i{width:12px;height:12px;border-radius:4px}
 .donut-legend span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.donut-legend .pct{color:var(--muted);font-family:var(--f-mono);font-size:12px;min-width:34px;text-align:right}
-.donut-legend .v{font-family:var(--f-mono);font-size:13px;text-align:right}
+.donut-legend .pct{color:var(--muted);font-family:var(--f-body);font-size:12px;min-width:34px;text-align:right}
+.donut-legend .v{font-family:var(--f-body);font-size:13px;text-align:right}
 
 /* Bars */
 .bars{display:flex;flex-direction:column;gap:14px}
 .bar-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;font-size:14px}
-.bar-row .amt{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.bar-row .amt{font-family:var(--f-body);font-size:13px;color:var(--muted)}
 .bar-row .amt b{color:var(--ink);font-weight:500}
 .track{grid-column:1/-1;height:10px;background:var(--sunken);border-radius:8px;position:relative;overflow:hidden}
 .fill{position:absolute;inset:0 auto 0 0;border-radius:8px;background:var(--olive)}
@@ -172,7 +173,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid var(--pink-soft);borde
 .form-grid .full{grid-column:1/-1}
 .items{display:flex;flex-direction:column;gap:8px}
 .item-row{display:grid;grid-template-columns:minmax(0,1fr) 72px 120px 110px 40px;gap:8px;align-items:center}
-.item-row .line-total{font-family:var(--f-mono);text-align:right;font-size:14px}
+.item-row .line-total{font-family:var(--f-body);text-align:right;font-size:14px}
 .totals{display:grid;grid-template-columns:auto auto;justify-content:end;gap:4px 24px;font-size:14px;margin-top:6px}
 .totals .num{text-align:right}
 .totals .grand{font-weight:800;font-size:17px}
@@ -403,7 +404,7 @@ function stampPNG(date, label) {
   g.lineWidth = 9; rr(440, 210, 26); g.lineWidth = 3; rr(408, 178, 18);
   g.textAlign = "center"; g.textBaseline = "middle";
   g.font = "900 100px -apple-system, 'SF Pro Display', 'Helvetica Neue', 'Arial Black', Arial, sans-serif"; g.fillText(label, 0, -14);
-  g.font = "700 26px ui-monospace, 'SF Mono', Menlo, 'Courier New', monospace"; g.fillText(fmtDate(date).toUpperCase(), 0, 58);
+  g.font = "700 27px -apple-system, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif"; g.fillText(fmtDate(date).toUpperCase(), 0, 58);
   // ink texture: knock out small specks
   g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "destination-out";
   let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -509,7 +510,7 @@ function donut(slices, centerTop, centerBottom, label) {
     a0 = a1;
   });
   const svg = `<svg viewBox="0 0 180 180" role="img" aria-label="${esc(label)}">${paths}
-    <text x="90" y="86" text-anchor="middle" font-size="16" font-family="var(--f-mono)" fill="var(--ink)">${esc(centerTop)}</text>
+    <text x="90" y="86" text-anchor="middle" font-size="16" fill="var(--ink)">${esc(centerTop)}</text>
     <text x="90" y="105" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--muted)" letter-spacing=".06em">${esc(centerBottom)}</text></svg>`;
   const legend = slices.sort((a, b) => b.value - a.value).map(s => `<div><i style="background:var(${s.color})"></i><span>${esc(s.name)}</span><b class="pct">${Math.round(s.value / total * 100)}%</b><span class="v">${money(s.value)}</span></div>`).join("");
   return `<div class="donut">${svg}<div class="donut-legend">${legend}</div></div>`;
@@ -524,7 +525,7 @@ function cashChart(months) {
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Money in and out, last six months">`;
   for (let v = 0; v <= top + 1e-6; v += step) {
     s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" ${v ? 'stroke-dasharray="3 5"' : ""}/>`;
-    s += `<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--f-mono)">${shortMoney(v)}</text>`;
+    s += `<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${shortMoney(v)}</text>`;
   }
   months.forEach((mk, i) => {
     const cx = L + gw * i + gw / 2, v = vals[i], on = mk === S.dashMonth;
