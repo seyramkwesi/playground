@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Cedi Ledger</title>
 <meta name="description" content="Invoices, receipts, expenses and budgets in one place.">
-<meta name="theme-color" content="#f4c4d0" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#2a2523" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light only">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14,37 +14,24 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&family=DM+Mono:wght@400;500&display=swap">
 <script src="jspdf.umd.min.js"></script>
 <style>
-/* Layout: soft pastel ledger — left rail on desktop, bottom tab bar on phones; tinted KPI tiles, donut charts, paper-style documents. */
+/* Layout: clean white ledger with pastel accents — left rail on desktop, bottom tab bar on phones; San Francisco throughout. */
 :root{
-  --bg:#fbf6f4; --surface:#ffffff; --sunken:#f5ede9; --ink:#3d3830; --muted:#7c7369; --line:#eee1dc;
-  --pink:#f4c4d0; --pink-soft:#fbe6ec; --pink-deep:#b85870;
-  --olive:#c5cf9f; --olive-soft:#eef1df; --olive-deep:#5f6c33;
-  --lav:#d8cdef; --lav-soft:#f1ecfa; --peach:#f8d3b8; --mint:#c4e3d3; --butter:#f4e4a6; --butter-soft:#fbf4d9;
+  --bg:#ffffff; --surface:#ffffff; --sunken:#f6f5f4; --ink:#2c2a27; --muted:#76716b; --line:#ecebe9;
+  --pink:#f4c4d0; --pink-soft:#fcecf0; --pink-deep:#b85870;
+  --olive:#c5cf9f; --olive-soft:#f2f5e6; --olive-deep:#5f6c33;
+  --lav:#d8cdef; --lav-soft:#f4f0fb; --peach:#f8d3b8; --mint:#c4e3d3; --butter:#f4e4a6; --butter-soft:#fcf7e2;
   --sky:#c7dcef; --clay:#e9b9aa; --sage:#bfccb4;
-  --btn:#f4c4d0; --btn-ink:#3d3830; --btn-hover:#efb2c2;
+  --btn:#f4c4d0; --btn-ink:#2c2a27; --btn-hover:#efb2c2;
   --good:#5f6c33; --warn:#9a6b12; --bad:#b24a5c;
-  --paper:#fffdfc; --paper-ink:#3d3830; --paper-muted:#857b70; --paper-line:#efe4df;
-  --shadow:0 1px 2px rgba(61,56,48,.05),0 10px 30px rgba(61,56,48,.06);
-  --f-display:"Young Serif",Georgia,"Times New Roman",serif;
-  --f-body:"Nunito Sans","Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;
-  --f-mono:"DM Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --paper:#ffffff; --paper-ink:#2c2a27; --paper-muted:#7d776f; --paper-line:#ecebe9;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.05);
+  --f-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --f-body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --f-mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
   color-scheme:light;
 }
-@media (prefers-color-scheme: dark){:root{
-  --bg:#1e1b1a; --surface:#282422; --sunken:#322d2a; --ink:#f2ebe6; --muted:#b2a79d; --line:#3b3532;
-  --pink:#e7b3c0; --pink-soft:#43303a; --pink-deep:#f0a3b6;
-  --olive:#b8c38f; --olive-soft:#33382a; --olive-deep:#c9d59c;
-  --lav:#c9bde6; --lav-soft:#352f45; --peach:#ecc2a5; --mint:#afd4c1; --butter:#e6d595; --butter-soft:#3b3524;
-  --sky:#b3cbe2; --clay:#dba696; --sage:#aebda3;
-  --btn:#e7b3c0; --btn-ink:#2a2220; --btn-hover:#efc3ce;
-  --good:#c9d59c; --warn:#e6c66b; --bad:#f0a3b6;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.25);
-  color-scheme:dark}}
 
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -53,17 +40,18 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);fo
 img{max-width:100%}
 [hidden]{display:none!important}
 button,input,select,textarea{font:inherit;color:inherit}
-.num,.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
-h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:-.015em}
 :focus-visible{outline:2px solid var(--pink-deep);outline-offset:2px;border-radius:6px}
 
 .app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100%}
-.rail{position:sticky;top:0;height:100vh;padding:24px 14px;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:24px}
+.rail{position:sticky;top:0;height:100vh;padding:24px 14px;background:var(--sunken);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:24px}
 .brand{display:flex;align-items:center;gap:11px;padding:0 8px}
 .brand-mark{width:38px;height:38px;border-radius:12px;background:var(--pink);display:grid;place-items:center;overflow:hidden;flex:none}
 .brand-mark span{width:24px;height:24px;border-radius:50%;background:var(--olive);display:grid;place-items:center;font-weight:800;font-size:14px;color:#3d3830}
 .brand-mark img{width:100%;height:100%;object-fit:contain;background:var(--surface)}
-.brand b{font-family:var(--f-display);font-weight:400;font-size:19px;display:block;line-height:1.15}
+.brand b{font-family:var(--f-display);font-weight:700;font-size:19px;display:block;line-height:1.15}
 .brand small{color:var(--muted);font-size:12px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
 .nav{display:flex;flex-direction:column;gap:3px}
 .nav a{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:12px;color:var(--muted);text-decoration:none;font-weight:600}
@@ -93,8 +81,11 @@ main{min-width:0;padding-block:26px 64px;padding-left:max(16px,env(safe-area-ins
 .btn.sm{padding:5px 11px;font-size:13px;min-height:34px}
 .btn svg{width:16px;height:16px}
 .btn:disabled{opacity:.45;cursor:default}
+a.btn{text-decoration:none;color:inherit}
+a.btn.primary{color:var(--btn-ink)}
+.field label.btn{text-transform:none;letter-spacing:0;font-size:13px;color:#2c2a27;font-weight:700}
 
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px 22px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:20px 22px;min-width:0}
 .panel h2{font-size:19px}
 .panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
 .panel-head .sub{color:var(--muted);font-size:13px}
@@ -104,13 +95,17 @@ a.sub{color:var(--pink-deep);font-weight:700;text-decoration:none}
 
 .banner{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:13px 18px;border-radius:16px;background:var(--butter-soft);border:1px dashed var(--butter);font-size:14px}
 .banner.lav{background:var(--lav-soft);border-color:var(--lav)}
+.banner.pink{background:var(--pink-soft);border-color:var(--pink)}
+.from-box{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;padding:14px;border-radius:16px;background:var(--sunken)}
+.from-box .preview{width:88px;height:56px;border-radius:10px;background:var(--paper);border:1px solid var(--paper-line);display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--muted);font-size:11px;text-align:center}
+.from-box .preview img{width:100%;height:100%;object-fit:contain}
 
 /* KPI tiles */
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .kpi{padding:16px 18px;border-radius:18px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .kpi.t1{background:var(--olive-soft)} .kpi.t2{background:var(--pink-soft)} .kpi.t3{background:var(--lav-soft)} .kpi.t4{background:var(--butter-soft)}
 .kpi .label{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:800}
-.kpi .val{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:23px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .val{font-family:var(--f-body);font-variant-numeric:tabular-nums;font-size:24px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi .hint{font-size:13px;color:var(--muted)}
 .up{color:var(--good)} .down{color:var(--bad)}
 
@@ -182,12 +177,12 @@ input:focus,select:focus,textarea:focus{outline:3px solid var(--pink-soft);borde
 .totals .num{text-align:right}
 .totals .grand{font-weight:800;font-size:17px}
 .empty{padding:28px 10px;text-align:center;color:var(--muted)}
-.empty b{display:block;color:var(--ink);font-family:var(--f-display);font-weight:400;font-size:18px;margin-bottom:4px}
+.empty b{display:block;color:var(--ink);font-family:var(--f-display);font-weight:700;font-size:18px;margin-bottom:4px}
 .foot-total{display:flex;justify-content:space-between;padding-top:12px;font-weight:700;border-top:1px solid var(--line);margin-top:6px}
 
 .logo-box{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px;border:1px dashed var(--line);border-radius:16px;background:var(--sunken)}
-.logo-box .preview{width:120px;height:64px;border-radius:10px;background:var(--paper);display:grid;place-items:center;overflow:hidden;color:var(--paper-muted);font-size:12px;border:1px solid var(--paper-line)}
-.logo-box .preview img{max-width:100%;max-height:100%;object-fit:contain}
+.logo-box .preview{width:120px;height:64px;border-radius:10px;background:var(--paper);display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--paper-muted);font-size:12px;border:1px solid var(--paper-line)}
+.logo-box .preview img{width:100%;height:100%;object-fit:contain}
 .file-btn{position:relative;overflow:hidden}
 .file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 
@@ -208,14 +203,14 @@ input:focus,select:focus,textarea:focus{outline:3px solid var(--pink-soft);borde
 .paper .band{position:absolute;inset:0 0 auto 0;height:8px;background:linear-gradient(90deg,var(--pink) 0 50%,var(--olive) 50% 100%)}
 .paper .p-top{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .paper .p-logo{max-width:150px;max-height:64px;object-fit:contain;display:block;margin-bottom:8px}
-.paper h3{font-size:28px;letter-spacing:.03em}
+.paper h3{font-size:30px;letter-spacing:-.01em}
 .paper .p-muted{color:var(--paper-muted)}
 .paper .p-meta{display:grid;grid-template-columns:auto auto;gap:2px 14px;font-size:13px;align-content:start}
 .paper .p-meta span:nth-child(odd){color:var(--paper-muted)}
 .paper table th{color:var(--paper-muted);border-color:var(--paper-line)}
 .paper table td{border-color:var(--paper-line)}
 .paper .p-sec{margin-top:22px}
-.paper .p-amount{font-family:var(--f-mono);font-size:32px}
+.paper .p-amount{font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .paper .stamp{position:absolute;right:28px;width:190px;pointer-events:none;opacity:.92}
 .paper .stamp.inv{top:110px;width:160px}
 .paper .stamp.rct{top:120px}
@@ -407,8 +402,8 @@ function stampPNG(date, label) {
     g.arcTo(-w/2, h/2, -w/2, -h/2, r); g.arcTo(-w/2, -h/2, w/2, -h/2, r); g.closePath(); g.stroke(); };
   g.lineWidth = 9; rr(440, 210, 26); g.lineWidth = 3; rr(408, 178, 18);
   g.textAlign = "center"; g.textBaseline = "middle";
-  g.font = "900 100px 'Nunito Sans', 'Arial Black', Arial, sans-serif"; g.fillText(label, 0, -14);
-  g.font = "800 26px 'DM Mono', 'Courier New', monospace"; g.fillText(fmtDate(date).toUpperCase(), 0, 58);
+  g.font = "900 100px -apple-system, 'SF Pro Display', 'Helvetica Neue', 'Arial Black', Arial, sans-serif"; g.fillText(label, 0, -14);
+  g.font = "700 26px ui-monospace, 'SF Mono', Menlo, 'Courier New', monospace"; g.fillText(fmtDate(date).toUpperCase(), 0, 58);
   // ink texture: knock out small specks
   g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "destination-out";
   let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -564,9 +559,14 @@ function render() {
   $("#tabbar").innerHTML = VIEWS.map(([k, l]) => `<a href="#${k}" ${S.view === k ? 'aria-current="page"' : ""}>${I[k]}<span>${l}</span></a>`).join("");
   const v = {dashboard:vDashboard, invoices:vInvoices, receipts:vReceipts, expenses:vExpenses, budgets:vBudgets, business:vBusiness}[S.view] || vDashboard;
   const y = window.scrollY;
-  $("#view").innerHTML = (exampleMode() ? `<div class="banner"><span><b>Example data.</b> Explore freely. These samples disappear as soon as you add your first record.</span><button class="btn sm" data-action="dismiss-examples">Start with an empty ledger</button></div>` : backupNudge()) + v();
+  $("#view").innerHTML = (exampleMode() ? `<div class="banner"><span><b>Example data.</b> Explore freely. These samples disappear as soon as you add your first record.</span><button class="btn sm" data-action="dismiss-examples">Start with an empty ledger</button></div>` : setupNudge() + backupNudge()) + v();
   window.scrollTo(0, y);
   renderModal();
+}
+function setupNudge() {
+  const st = settings();
+  if (S.view !== "dashboard" || exampleMode() || (st.business.name && st.logo)) return "";
+  return `<div class="banner pink"><span><b>Add your business ${st.business.name ? "logo" : "name and logo"}.</b> They appear at the top of every invoice and receipt.</span><a class="btn sm primary" href="#business">Set up business</a></div>`;
 }
 function backupNudge() {
   if (S.view !== "dashboard" || realCount() < 3) return "";
@@ -719,7 +719,7 @@ function vBusiness() {
   const st = settings(), b = st.business, lb = (S.records.settings || {}).lastBackup;
   return `
   <div class="head"><div><h1>Business</h1><p>These details and your logo appear on every invoice and receipt.</p></div></div>
-  <section class="panel"><div class="panel-head"><h2>Company logo</h2></div>
+  <section class="panel"><div class="panel-head"><h2>Company logo</h2><span class="sub">Shown on invoices, receipts and PDFs</span></div>
     <div class="logo-box"><div class="preview">${st.logo ? `<img src="${st.logo}" alt="Your logo">` : "No logo"}</div>
       <div style="display:flex;flex-direction:column;gap:8px;min-width:0"><span class="muted">PNG with a transparent background looks best. It's resized automatically.</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn olive file-btn">${st.logo ? "Replace logo" : "Upload logo"}<input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp"></label>
@@ -795,62 +795,102 @@ function imgSize(dataUrl) { return new Promise(res => { const i = new Image(); i
 async function pdfDoc(kind, rec) {
   if (!window.jspdf) return null;
   const { jsPDF } = window.jspdf, doc = new jsPDF({unit:"pt", format:"a4"});
-  const st = settings(), b = st.business, W = 595, M = 48;
-  const ink = [61, 56, 48], muted = [133, 123, 112], pink = [244, 196, 208], olive = [197, 207, 159];
-  doc.setFillColor(...pink); doc.rect(0, 0, W / 2, 10, "F"); doc.setFillColor(...olive); doc.rect(W / 2, 0, W / 2, 10, "F");
-  let y = 52;
+  const st = settings(), b = st.business, W = 595, H = 842, M = 50, R = W - M;
+  const INK = [44, 42, 39], MUTED = [125, 119, 111], LINE = [232, 230, 227], PINK = [244, 196, 208], OLIVE = [197, 207, 159], TINT = [252, 236, 240];
+  const font = (w, size, color) => { doc.setFont("helvetica", w); doc.setFontSize(size); doc.setTextColor(...(color || INK)); };
+  const txt = (t, x, y, o) => doc.text(Array.isArray(t) ? t : String(t ?? ""), x, y, o);
+  const label = (t, x, y, align) => { font("bold", 7.5, MUTED); doc.setCharSpace(0.6); txt(t.toUpperCase(), x, y, align ? {align} : undefined); doc.setCharSpace(0); };
+  const hr = y => { doc.setDrawColor(...LINE); doc.setLineWidth(0.8); doc.line(M, y, R, y); };
+
+  // colour band
+  doc.setFillColor(...PINK); doc.rect(0, 0, W / 2, 8, "F"); doc.setFillColor(...OLIVE); doc.rect(W / 2, 0, W / 2, 8, "F");
+
+  // header: logo + business (left), document title (right)
+  let y = 50;
   if (st.logo) {
-    const [lw, lh] = await imgSize(st.logo), k = Math.min(150 / lw, 56 / lh);
-    try { doc.addImage(st.logo, "PNG", M, y - 12, lw * k, lh * k); y += lh * k + 4; } catch {}
+    const [lw, lh] = await imgSize(st.logo), k = Math.min(140 / lw, 52 / lh);
+    try { doc.addImage(st.logo, "PNG", M, y, lw * k, lh * k); y += lh * k + 14; } catch {}
   }
-  doc.setTextColor(...ink); doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.text(b.name || "Your business", M, y + 8);
-  doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(...muted);
-  const bl = [b.address, b.phone, b.email].filter(Boolean).map(l => String(l).split("\n").join(", "));
-  bl.forEach((l, i) => doc.text(l, M, y + 23 + i * 12));
-  doc.setTextColor(...ink); doc.setFont("times", "normal"); doc.setFontSize(28); doc.text(kind === "invoice" ? "Invoice" : "Receipt", W - M, 62, {align:"right"});
-  doc.setFont("courier", "normal"); doc.setFontSize(10.5); doc.text(rec.number, W - M, 80, {align:"right"});
-  y = Math.max(y + 30 + bl.length * 12, 130);
-  doc.setDrawColor(239, 228, 223); doc.line(M, y, W - M, y); y += 28;
-  const label = (t, x, yy) => { doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(...muted); doc.text(t.toUpperCase(), x, yy); };
-  const val = (t, x, yy, o) => { doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(...ink); doc.text(t, x, yy, o); };
-  let stampDate = null;
+  font("bold", 15); txt(b.name || "Your business", M, y + 4);
+  font("normal", 9, MUTED);
+  const bLines = [b.address, b.phone, b.email].filter(Boolean).flatMap(l => doc.splitTextToSize(String(l).replace(/\n/g, ", "), 240));
+  bLines.forEach((l, i) => txt(l, M, y + 19 + i * 12.5));
+  const leftBottom = y + 19 + bLines.length * 12.5;
+  font("bold", 26); txt(kind === "invoice" ? "INVOICE" : "RECEIPT", R, 64, {align:"right"});
+  font("normal", 10, MUTED); txt(rec.number, R, 82, {align:"right"});
+  y = Math.max(leftBottom, 100) + 14; hr(y); y += 26;
+
+  let stampAt = null;
   if (kind === "invoice") {
-    const t = invoiceTotals(rec);
-    label("Bill to", M, y); doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.setTextColor(...ink); doc.text(rec.client?.name || "-", M, y + 16);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(...muted);
-    [rec.client?.address, rec.client?.phone, rec.client?.email].filter(Boolean).forEach((l, i) => doc.text(String(l), M, y + 30 + i * 12));
-    label("Issued", 370, y); val(fmtDate(rec.issueDate), 430, y); label("Due", 370, y + 17); val(fmtDate(rec.dueDate), 430, y + 17);
-    if (rec.paidDate) { label("Paid", 370, y + 34); val(fmtDate(rec.paidDate), 430, y + 34); }
-    y += 84;
-    doc.setFillColor(251, 240, 243); doc.roundedRect(M, y - 14, W - 2 * M, 22, 4, 4, "F");
-    label("Description", M + 10, y); label("Qty", 330, y); label("Rate", 400, y); label("Amount", W - M - 10, y); doc.text("", 0, 0);
-    y += 24;
+    const t = invoiceTotals(rec), paid = rec.status === "paid";
+    // bill to (left) and dates (right)
+    label("Bill to", M, y);
+    font("bold", 11.5); txt(rec.client?.name || "-", M, y + 17);
+    font("normal", 9.5, MUTED);
+    const cLines = [rec.client?.address, rec.client?.phone, rec.client?.email].filter(Boolean).flatMap(l => doc.splitTextToSize(String(l), 250));
+    cLines.forEach((l, i) => txt(l, M, y + 32 + i * 12.5));
+    const meta = [["Invoice date", fmtDate(rec.issueDate)], ["Due date", fmtDate(rec.dueDate)]];
+    if (rec.paidDate) meta.push(["Paid on", fmtDate(rec.paidDate)]);
+    meta.forEach(([l, v], i) => { label(l, 400, y + i * 18, "right"); font("normal", 10); txt(v, R, y + i * 18, {align:"right"}); });
+    y += Math.max(32 + cLines.length * 12.5, meta.length * 18) + 26;
+
+    // items table: description | qty | rate | amount (numbers right-aligned in fixed columns)
+    const cQty = 345, cRate = 445, cAmt = R - 10;
+    doc.setFillColor(...TINT); doc.roundedRect(M, y - 15, R - M, 24, 4, 4, "F");
+    label("Description", M + 10, y); label("Qty", cQty, y, "right"); label("Rate", cRate, y, "right"); label("Amount", cAmt, y, "right");
+    y += 26;
     (rec.items || []).forEach(it => {
-      const lines = doc.splitTextToSize(it.desc || "", 260);
-      val(lines, M + 10, y); val(String(num(it.qty)), 330, y); val(moneyPlain(num(it.price)), 400, y); val(moneyPlain(num(it.qty) * num(it.price)), W - M - 10, y, {align:"right"});
-      y += lines.length * 13 + 10; doc.line(M, y - 8, W - M, y - 8);
+      if (y > H - 200) { doc.addPage(); y = 60; }
+      font("normal", 10);
+      const lines = doc.splitTextToSize(it.desc || "", cQty - M - 60);
+      txt(lines, M + 10, y);
+      txt(String(num(it.qty)), cQty, y, {align:"right"});
+      txt(moneyPlain(num(it.price)), cRate, y, {align:"right"});
+      font("bold", 10); txt(moneyPlain(num(it.qty) * num(it.price)), cAmt, y, {align:"right"});
+      y += lines.length * 13 + 9; hr(y - 4); y += 12;
     });
-    y += 12;
-    const row = (l, v, bold) => { doc.setFont("helvetica", bold ? "bold" : "normal"); doc.setFontSize(bold ? 13 : 10.5); doc.setTextColor(...ink); doc.text(l, 370, y); doc.text(v, W - M - 10, y, {align:"right"}); y += bold ? 24 : 17; };
-    row("Subtotal", moneyPlain(t.sub)); if (t.disc) row("Discount", "-" + moneyPlain(t.disc)); if (num(rec.taxRate)) row("Tax (" + num(rec.taxRate) + "%)", moneyPlain(t.tax));
-    row(rec.status === "paid" ? "Total paid" : "Total due", moneyPlain(t.total), true);
-    y += 14;
-    if ((b.momo || b.bank) && rec.status !== "paid") { label("How to pay", M, y); y += 16;
-      if (b.momo) { val("Mobile Money: " + b.momo, M, y); y += 14; } if (b.bank) { val("Bank: " + b.bank, M, y); y += 14; }
-      doc.setFontSize(9.5); doc.setTextColor(...muted); doc.text("Please use " + rec.number + " as the payment reference.", M, y); y += 22; }
-    if (rec.notes) { doc.setFontSize(9.5); doc.setTextColor(...muted); doc.text(doc.splitTextToSize(rec.notes, W - 2 * M), M, y); }
-    if (rec.status === "paid") stampDate = rec.paidDate || today();
+
+    // totals block, right side
+    y += 4;
+    const tl = 360;
+    const row = (l, v) => { font("normal", 10, MUTED); txt(l, tl, y); font("normal", 10); txt(v, cAmt, y, {align:"right"}); y += 17; };
+    row("Subtotal", moneyPlain(t.sub));
+    if (t.disc) row("Discount", "- " + moneyPlain(t.disc));
+    if (num(rec.taxRate)) row("Tax (" + num(rec.taxRate) + "%)", moneyPlain(t.tax));
+    y += 2; doc.setFillColor(...(paid ? [242, 245, 230] : TINT)); doc.roundedRect(tl - 12, y - 6, cAmt - tl + 22, 30, 5, 5, "F");
+    font("bold", 12); txt(paid ? "Total paid" : "Total due", tl, y + 13); txt(moneyPlain(t.total), cAmt, y + 13, {align:"right"});
+    const totalsTop = y;
+    y += 50;
+
+    // payment details + notes
+    if ((b.momo || b.bank) && !paid) {
+      label("Payment details", M, y); y += 16; font("normal", 10);
+      if (b.momo) { txt("Mobile Money: " + b.momo, M, y); y += 14; }
+      if (b.bank) { txt("Bank: " + b.bank, M, y); y += 14; }
+      font("normal", 9, MUTED); txt("Please use " + rec.number + " as your payment reference.", M, y); y += 24;
+    }
+    if (paid) y = Math.max(y, totalsTop + 86);
+    if (rec.notes) { label("Notes", M, y); y += 15; font("normal", 9.5, MUTED); txt(doc.splitTextToSize(rec.notes, R - M), M, y); }
+    if (paid) stampAt = [M + 10, totalsTop - 30, 170, 98, rec.paidDate || today()];
   } else {
     const inv = rec.invoiceId && data()[rec.invoiceId];
-    label("Amount received", M, y); doc.setFont("courier", "bold"); doc.setFontSize(26); doc.setTextColor(...ink); doc.text(moneyPlain(num(rec.amount)), M, y + 32);
-    y += 74;
-    [["Received from", rec.payer], ["Date", fmtDate(rec.date)], ["Payment method", rec.method], rec.reference && ["Transaction ref.", rec.reference], inv && ["For invoice", inv.number], rec.note && ["Note", rec.note]]
-      .filter(Boolean).forEach(([l, v]) => { label(l, M, y); val(doc.splitTextToSize(String(v), 300), 170, y); y += 24; });
-    y += 16; doc.setFontSize(10); doc.setTextColor(...muted); doc.text("Thank you for your payment.", M, y);
-    stampDate = rec.date;
+    label("Amount received", M, y);
+    font("bold", 30); txt(moneyPlain(num(rec.amount)), M, y + 34);
+    y += 70;
+    [["Received from", rec.payer], ["Payment date", fmtDate(rec.date)], ["Payment method", rec.method], rec.reference && ["Transaction ref.", rec.reference],
+     inv && ["For invoice", inv.number], rec.note && ["Note", rec.note]].filter(Boolean).forEach(([l, v]) => {
+      label(l, M, y); font(l === "Received from" ? "bold" : "normal", 10.5); const ls = doc.splitTextToSize(String(v), 300); txt(ls, 175, y); y += Math.max(1, ls.length) * 13 + 11;
+    });
+    y += 14; font("normal", 10, MUTED); txt("Thank you for your payment.", M, y);
+    stampAt = [R - 200, 150, 200, 115, rec.date];
   }
-  if (stampDate) doc.addImage(stampPNG(stampDate, "PAID"), "PNG", W - M - 200, kind === "invoice" ? 150 : 165, 200, 115);
-  doc.setFontSize(8); doc.setTextColor(...muted); doc.setFont("helvetica", "normal"); doc.text("Generated " + fmtDate(today()), M, 812);
+  if (stampAt) { const [sx, sy, sw, sh, sd] = stampAt; doc.addImage(stampPNG(sd, "PAID"), "PNG", sx, sy, sw, sh); }
+
+  // footer
+  hr(H - 52);
+  font("normal", 8, MUTED);
+  txt([b.name, b.email, b.phone].filter(Boolean).join("  ·  ") || "Generated with Cedi Ledger", M, H - 36);
+  txt("Generated " + fmtDate(today()), R, H - 36, {align:"right"});
   return doc.output("blob");
 }
 async function sharePdf(kind, rec) {
@@ -878,8 +918,16 @@ const totalsHTML = (t, d) => `<span>Subtotal</span><span class="num">${money(t.s
 function mInvoiceForm(m) {
   const d = m.draft, st = settings();
   const clients = [...new Map(all("invoice").map(i => [i.client?.name, i.client])).values()].filter(c => c && c.name);
+  const bname = m.bizName !== undefined ? m.bizName : st.business.name;
   return mHead(m.isNew ? "New invoice" : "Edit " + esc(d.number)) + `
   <form id="invForm" class="modal-body">
+    <div class="field"><span class="lbl">From · your business</span>
+      <div class="from-box"><div class="preview">${st.logo ? `<img src="${st.logo}" alt="Your logo">` : "No logo"}</div>
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+          <input type="text" id="fBizName" value="${esc(bname)}" placeholder="Business name (shown on the invoice)" aria-label="Business name">
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn sm olive file-btn">${st.logo ? "Change logo" : "Add logo"}<input type="file" id="formLogoInput" accept="image/png,image/jpeg,image/webp"></label>
+          ${st.logo ? `<button type="button" class="btn sm danger" data-action="remove-logo-form">Remove logo</button>` : ""}
+          <a class="btn sm ghost" style="white-space:normal;text-align:left;padding-left:2px" href="#business" data-action="close">Address, phone &amp; payment details</a></div></div></div></div>
     <div class="form-grid">
       <div class="field"><label for="fNum">Invoice number</label><input type="text" id="fNum" name="number" value="${esc(d.number)}" required></div>
       <div class="field"><label for="fStatus">Status</label><select id="fStatus" name="status">${["draft","sent","paid"].map(s => `<option value="${s}" ${d.status === s ? "selected" : ""}>${statusLabel(s)}</option>`).join("")}</select></div>
@@ -905,7 +953,6 @@ function mInvoiceForm(m) {
       <div class="field full"><label for="fNotes">Notes on the invoice</label><textarea id="fNotes" name="notes" rows="2">${esc(d.notes)}</textarea></div>
     </div>
     <div class="totals" id="invTotals">${totalsHTML(invoiceTotals(d), d)}</div>
-    ${st.logo ? "" : `<div class="muted">Tip: add your company logo under Business and it will appear on this invoice.</div>`}
   </form>
   <div class="modal-foot"><button class="btn" data-action="close">Cancel</button><button class="btn primary" data-action="save-invoice">${m.isNew ? "Create invoice" : "Save changes"}</button></div>`;
 }
@@ -967,6 +1014,7 @@ function readForm(form, into) {
 }
 function syncInvoiceDraft() {
   const f = $("#invForm"); if (!f || !S.modal?.draft) return;
+  const bn = $("#fBizName"); if (bn) S.modal.bizName = bn.value;
   const d = S.modal.draft; readForm(f, d);
   f.querySelectorAll("[data-item]").forEach(el => { d.items[+el.dataset.item][el.dataset.k] = el.dataset.k === "desc" ? el.value : num(el.value); });
 }
@@ -980,7 +1028,7 @@ const newReceiptDraft = inv => ({id:rid("rct"), kind:"receipt", number:nextNumbe
 async function act(a, el) {
   const m = S.modal;
   switch (a) {
-    case "close": closeModal(); break;
+    case "close": closeModal(); if (el.getAttribute && el.getAttribute("href")) location.hash = el.getAttribute("href").slice(1); break;
     case "dismiss-examples": saveSettings({examplesDismissed:true}); render(); toast("Ledger cleared. Add your first record."); break;
     case "dash-month": S.dashMonth = addMonths(S.dashMonth, +el.dataset.dir); render(); break;
     case "inv-filter": S.invFilter = el.dataset.v; render(); break;
@@ -995,6 +1043,8 @@ async function act(a, el) {
       syncInvoiceDraft(); const d = m.draft;
       d.items = d.items.filter(it => it.desc || num(it.price));
       if (!d.items.length) { d.items = [{desc:"", qty:1, price:0}]; renderModal(); toast("Add at least one line item."); return; }
+      const bn = (m.bizName ?? "").trim();
+      if (m.bizName !== undefined && bn !== settings().business.name) saveSettings({business:{...settings().business, name:bn}});
       if (d.status === "paid" && !d.paidDate) d.paidDate = today();
       if (d.status !== "paid") delete d.paidDate;
       put(d); toast(m.isNew ? "Invoice " + d.number + " created" : "Invoice saved");
@@ -1031,6 +1081,7 @@ async function act(a, el) {
       remove(id); S.modal = null; render(); toast("Deleted"); break;
     }
     case "remove-logo": saveSettings({logo:""}); render(); toast("Logo removed"); break;
+    case "remove-logo-form": syncInvoiceDraft(); saveSettings({logo:""}); renderModal(); toast("Logo removed"); break;
     case "export-csv": {
       const rows = all("expense").filter(e => !S.expMonth || monthKey(e.date) === S.expMonth).sort((a, b) => a.date.localeCompare(b.date));
       if (!rows.length) { toast("No expenses to export."); return; }
@@ -1071,6 +1122,11 @@ document.addEventListener("change", async e => {
   if (t.id === "dashMonth" && t.value) { S.dashMonth = t.value; render(); }
   else if (t.id === "expMonth") { S.expMonth = t.value; render(); }
   else if (t.id === "expCat") { S.expCat = t.value; render(); }
+  else if (t.id === "formLogoInput") {
+    syncInvoiceDraft();
+    try { const url = await readLogo(t.files[0]); saveSettings({logo:url}); render(); toast("Logo added"); }
+    catch (err) { toast(err.message); }
+  }
   else if (t.id === "logoInput") {
     try { const url = await readLogo(t.files[0]); saveSettings({logo:url}); render(); toast("Logo added to your invoices and receipts"); }
     catch (err) { toast(err.message); }
@@ -1108,7 +1164,6 @@ window.addEventListener("hashchange", route);
 load();
 S.view = (VIEWS.find(v => v[0] === location.hash.slice(1)) || ["dashboard"])[0];
 render();
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { for (const k in stampCache) delete stampCache[k]; if (S.modal) renderModal(); });
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 })();
 </script>
