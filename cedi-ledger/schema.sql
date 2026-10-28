@@ -203,8 +203,81 @@ grant execute on function public.transfer_ownership(uuid, uuid) to authenticated
 grant execute on function public.invite_info(text) to authenticated;
 grant execute on function public.set_display_name(text) to authenticated;
 
+-- ============ Profiles (name, job title, phone, photo) ============
+
+create table if not exists public.profiles (
+  id         uuid primary key references auth.users(id) on delete cascade,
+  full_name  text check (char_length(full_name) <= 80),
+  job_title  text check (char_length(job_title) <= 80),
+  phone      text check (char_length(phone) <= 40),
+  avatar     text check (char_length(avatar) <= 150000),
+  updated_at timestamptz not null default now()
+);
+alter table public.profiles enable row level security;
+
+-- True when the signed-in person and `other` belong to at least one shared business.
+create or replace function public.shares_workspace(other uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from members a join members b on a.workspace_id = b.workspace_id
+    where a.user_id = auth.uid() and b.user_id = other);
+$$;
+
+-- You see your own profile and your teammates'; you only change your own.
+drop policy if exists prof_select on public.profiles;
+create policy prof_select on public.profiles for select using (id = auth.uid() or public.shares_workspace(id));
+drop policy if exists prof_insert on public.profiles;
+create policy prof_insert on public.profiles for insert with check (id = auth.uid());
+drop policy if exists prof_update on public.profiles;
+create policy prof_update on public.profiles for update using (id = auth.uid()) with check (id = auth.uid());
+
+-- Save your profile and keep your name on every team list in step.
+create or replace function public.save_profile(p_full_name text, p_job_title text, p_phone text, p_avatar text)
+returns void language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); n text := nullif(trim(left(coalesce(p_full_name, ''), 80)), '');
+begin
+  if uid is null then raise exception 'Sign in first'; end if;
+  insert into profiles (id, full_name, job_title, phone, avatar, updated_at)
+  values (uid, n, nullif(trim(left(coalesce(p_job_title, ''), 80)), ''), nullif(trim(left(coalesce(p_phone, ''), 40)), ''), nullif(p_avatar, ''), now())
+  on conflict (id) do update set full_name = excluded.full_name, job_title = excluded.job_title,
+    phone = excluded.phone, avatar = excluded.avatar, updated_at = now();
+  if n is not null then update members set display_name = n where user_id = uid; end if;
+end $$;
+
+-- Keep the email shown on team lists current after an email change.
+create or replace function public.sync_my_email()
+returns void language sql security definer set search_path = public as $$
+  update members set email = auth.jwt() ->> 'email' where user_id = auth.uid() and auth.jwt() ->> 'email' is not null;
+$$;
+
+-- Delete your own account. Businesses you own alone are deleted with it;
+-- a business you own with other people must be handed over first.
+create or replace function public.delete_my_account()
+returns void language plpgsql security definer set search_path = public, auth as $$
+declare uid uuid := auth.uid();
+begin
+  if uid is null then raise exception 'Sign in first'; end if;
+  if exists (select 1 from public.members m where m.user_id = uid and m.role = 'owner'
+             and exists (select 1 from public.members o where o.workspace_id = m.workspace_id and o.user_id <> uid)) then
+    raise exception 'You own a business that has other members. Transfer ownership first, then delete your account.';
+  end if;
+  delete from public.workspaces w
+   where exists (select 1 from public.members m where m.workspace_id = w.id and m.user_id = uid and m.role = 'owner');
+  delete from auth.users where id = uid;
+end $$;
+
+revoke all on function public.save_profile(text, text, text, text) from public, anon;
+revoke all on function public.sync_my_email() from public, anon;
+revoke all on function public.delete_my_account() from public, anon;
+revoke all on function public.shares_workspace(uuid) from public, anon;
+grant execute on function public.save_profile(text, text, text, text) to authenticated;
+grant execute on function public.sync_my_email() to authenticated;
+grant execute on function public.delete_my_account() to authenticated;
+grant execute on function public.shares_workspace(uuid) to authenticated;
+
 -- ============ Live sync ============
 do $$ begin
   begin alter publication supabase_realtime add table public.records; exception when duplicate_object then null; end;
   begin alter publication supabase_realtime add table public.members; exception when duplicate_object then null; end;
+  begin alter publication supabase_realtime add table public.workspaces; exception when duplicate_object then null; end;
 end $$;

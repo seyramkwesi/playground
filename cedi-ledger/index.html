@@ -63,7 +63,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:700;margin:0;text-wrap:balance
 .nav a[aria-current="page"] svg{color:var(--pink-deep)}
 .nav svg{width:19px;height:19px;flex:none}
 .nav .count{margin-left:auto;font-family:var(--f-body);font-size:12px;background:var(--butter);color:#3d3830;border-radius:8px;padding:0 7px}
-.rail-foot{margin-top:auto;font-size:12px;color:var(--muted);padding:0 8px}
+.rail-foot{font-size:12px;color:var(--muted);padding:0 8px}
 
 main{min-width:0;padding-block:26px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .wrap{max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
@@ -297,6 +297,40 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
 .sync i{width:8px;height:8px;border-radius:50%;background:var(--olive-deep)}
 .sync.off i{background:var(--warn)}
 .byline{font-size:12px;color:var(--muted)}
+/* Settings */
+.settings{display:grid;grid-template-columns:210px minmax(0,1fr);gap:24px;align-items:start}
+.set-nav{position:sticky;top:calc(16px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:2px;padding:8px;border:1px solid var(--line);border-radius:18px;background:var(--surface)}
+.set-nav a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;color:var(--muted);text-decoration:none;font-weight:600;white-space:nowrap}
+.set-nav a:hover{background:var(--sunken);color:var(--ink)}
+.set-nav a[aria-current="page"]{background:var(--pink-soft);color:var(--ink)}
+.set-nav a[aria-current="page"] svg{color:var(--pink-deep)}
+.set-nav svg{width:18px;height:18px;flex:none}
+.set-body{display:flex;flex-direction:column;gap:20px;min-width:0}
+.set-body .panel p.lead{margin:0 0 14px;color:var(--muted)}
+.profile-top{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.avatar.xl{width:88px;height:88px;font-size:30px}
+.avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+.avatar{overflow:hidden;flex:none}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 18px;font-size:14px}
+.kv span:nth-child(odd){color:var(--muted)}
+.chips-row{display:flex;gap:6px;flex-wrap:wrap}
+.danger-zone{border-color:var(--pink)}
+.danger-zone h2{color:var(--bad)}
+.me-chip{display:flex;align-items:center;gap:10px;padding:8px;border-radius:14px;text-decoration:none;color:var(--ink)}
+.me-chip:hover{background:var(--surface)}
+.me-chip .avatar{width:32px;height:32px;font-size:12px}
+.me-chip b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.me-chip small{display:block;font-size:11px;color:var(--muted)}
+.rail-bottom{margin-top:auto;display:flex;flex-direction:column;gap:6px}
+@media (max-width:760px){
+  .settings{grid-template-columns:minmax(0,1fr);gap:14px}
+  .set-nav{position:static;flex-direction:row;overflow-x:auto;padding:4px;border-radius:14px;scrollbar-width:none}
+  .set-nav::-webkit-scrollbar{display:none}
+  .set-nav a{padding:7px 12px;font-size:14px}
+  .set-nav svg{display:none}
+  .kv{grid-template-columns:minmax(0,1fr)}
+  .kv span:nth-child(odd){margin-top:6px}
+}
 @media (prefers-reduced-motion:no-preference){.fill{transition:width .5s ease}}
 </style>
 </head>
@@ -306,7 +340,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
   <aside class="rail" aria-label="Main">
     <div class="brand"><div class="brand-mark" id="brandMark"><span>₵</span></div><div><b>Cedi Ledger</b><small id="bizName">Your business</small></div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="rail-foot" id="railFoot">Saved on this device</div>
+    <div class="rail-bottom"><a class="me-chip" id="meChip" href="#settings-profile"></a><div class="rail-foot" id="railFoot">Saved on this device</div></div>
   </aside>
   <main><div class="wrap" id="view"></div></main>
 </div>
@@ -342,14 +376,14 @@ const cssVar = v => getComputedStyle(document.documentElement).getPropertyValue(
 /* ---------- state & storage ---------- */
 const LS_KEY = "cedi-ledger-v1";               // single-device mode (and data from before accounts)
 const S = { records:{}, view:"dashboard", dashMonth:monthKey(new Date()), invFilter:"all", invSearch:"",
-  expMonth:monthKey(new Date()), expCat:"", expSearch:"", modal:null, pendingImport:null };
+  expMonth:monthKey(new Date()), expCat:"", expSearch:"", modal:null, pendingImport:null, setTab:"profile", setConfirm:null, setMsg:null };
 
 /* ---------- accounts (Supabase) ---------- */
 const CFG = window.CEDI_CONFIG || {};
 const CLOUD = !!(CFG.supabaseUrl && CFG.supabaseAnonKey && window.supabase && window.supabase.createClient);
 const sb = CLOUD ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey,
   {auth:{flowType:"pkce", persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}}) : null;
-const A = { phase: CLOUD ? "checking" : "local", user:null, workspaces:[], ws:null, role:null, members:[], invites:[],
+const A = { phase: CLOUD ? "checking" : "local", user:null, workspaces:[], ws:null, role:null, members:[], invites:[], profiles:{},
   channel:null, pendingInvite:null, inviteInfo:null, newLink:null, confirm:null,
   g:{tab:"signin", mode:"password", busy:false, ok:"", err:"", otpEmail:"", email:""} };
 const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
@@ -365,6 +399,43 @@ function memberName(uid) {
   if (A.user && uid === A.user.id) return "you";
   const m = A.members.find(x => x.user_id === uid);
   return m ? (m.display_name || (m.email || "").split("@")[0]) : "a former member";
+}
+const LOCAL_PROFILE = "cedi-profile";
+function myProfile() {
+  if (!CLOUD) return {...(lsJSON(LOCAL_PROFILE) || {}), email:""};
+  const u = A.user || {}, meta = u.user_metadata || {}, p = A.profiles[u.id] || lsJSON("cedi-myprof-" + u.id) || {};
+  return {full_name:p.full_name || meta.full_name || meta.name || "", job_title:p.job_title || "", phone:p.phone || "", avatar:p.avatar || "", email:u.email || ""};
+}
+function avatarHTML(name, avatar, color, cls) {
+  const inner = avatar ? `<img src="${avatar}" alt="">` : name ? esc(initials(name)) : `<span style="display:grid;width:55%;height:55%">${I.user}</span>`;
+  return `<span class="avatar ${cls || ""}" style="background:var(${color || "--pink"})">${inner}</span>`;
+}
+function readAvatar(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\//.test(file.type)) return reject(new Error("Choose a photo (JPG or PNG)."));
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error("Couldn't read that photo."));
+    fr.onload = () => { const img = new Image();
+      img.onerror = () => reject(new Error("That photo format isn't supported. Try JPG or PNG."));
+      img.onload = () => { const S2 = 256, c = document.createElement("canvas"); c.width = c.height = S2;
+        const k = Math.max(S2 / img.width, S2 / img.height), w = img.width * k, h = img.height * k;
+        const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, S2, S2); g.drawImage(img, (S2 - w) / 2, (S2 - h) / 2, w, h);
+        resolve(c.toDataURL("image/jpeg", 0.85)); };
+      img.src = fr.result; };
+    fr.readAsDataURL(file);
+  });
+}
+async function saveProfile(p) {
+  if (!CLOUD) { lsSet(LOCAL_PROFILE, JSON.stringify(p)); return null; }
+  const {error} = await sb.rpc("save_profile", {p_full_name:p.full_name || "", p_job_title:p.job_title || "", p_phone:p.phone || "", p_avatar:p.avatar || ""});
+  if (error) return error;
+  A.profiles[A.user.id] = {...(A.profiles[A.user.id] || {}), ...p, id:A.user.id};
+  lsSet("cedi-myprof-" + A.user.id, JSON.stringify(A.profiles[A.user.id]));
+  if ((A.user.user_metadata || {}).full_name !== p.full_name) {
+    const r = await sb.auth.updateUser({data:{full_name:p.full_name}}); if (!r.error && r.data) A.user = r.data.user;
+  }
+  const m = A.members.find(x => x.user_id === A.user.id); if (m && p.full_name) m.display_name = p.full_name;
+  return null;
 }
 function legacyRecords() { const r = lsJSON(LS_KEY) || {}; return Object.values(r).filter(x => x && x.kind); }
 
@@ -473,7 +544,7 @@ async function loadWorkspaces() {
 async function openWorkspace(ws) {
   A.ws = ws; lsSet("cedi-ws-" + A.user.id, ws);
   const w = A.workspaces.find(x => x.id === ws); A.role = w ? w.role : "member";
-  A.members = []; A.invites = []; A.newLink = null; A.confirm = null;
+  A.members = []; A.invites = []; A.newLink = null; S.setConfirm = null; S.setMsg = null;
   EXAMPLES = null; load(); A.phase = "ready"; showGate(false); render();
   subscribe(ws); refetch(); loadTeam(); flush();
 }
@@ -486,6 +557,8 @@ async function loadTeam() {
   if (!me) { toast("You no longer have access to that business."); lsDel("cedi-cache-" + ws); await loadWorkspaces(); return routeAfterAuth(); }
   A.members = m.data; A.role = me.role;
   const w = A.workspaces.find(x => x.id === ws); if (w) w.role = me.role;
+  const pr = await sb.from("profiles").select("id,full_name,job_title,phone,avatar").in("id", m.data.map(x => x.user_id));
+  if (!pr.error) { pr.data.forEach(p => A.profiles[p.id] = p); if (A.profiles[A.user.id]) lsSet("cedi-myprof-" + A.user.id, JSON.stringify(A.profiles[A.user.id])); }
   if (isManager()) {
     const i = await sb.from("invites").select("token,role,created_at,expires_at,note").eq("workspace_id", ws)
       .is("used_at", null).gt("expires_at", new Date().toISOString()).order("created_at", {ascending:false});
@@ -496,7 +569,7 @@ async function loadTeam() {
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
 /* ---------- example data ---------- */
-const DEFAULT_SETTINGS = {id:"settings", kind:"settings", currency:"GHS", taxRate:0, prefix:"INV", logo:"",
+const DEFAULT_SETTINGS = {id:"settings", kind:"settings", currency:"GHS", taxRate:0, prefix:"INV", logo:"", terms:14, invoiceNotes:"Thank you for your business.",
   business:{name:"", email:"", phone:"", address:"", momo:"", bank:""}, budgets:{}};
 let EXAMPLES = null;
 function buildExamples() {
@@ -555,7 +628,7 @@ function buildExamples() {
   return ex;
 }
 const realCount = () => Object.values(S.records).filter(r => r.kind !== "settings").length;
-const exampleMode = () => realCount() === 0 && !(S.records.settings && S.records.settings.examplesDismissed) && !(CLOUD && lsGet("cedi-ex-off-" + A.ws));
+const exampleMode = () => realCount() === 0 && !(S.records.settings && S.records.settings.examplesDismissed) && !(CLOUD && (lsGet("cedi-ex-off-" + A.ws) || !isManager()));
 function data() { if (exampleMode()) { EXAMPLES = EXAMPLES || buildExamples(); return EXAMPLES; } return S.records; }
 function settings() {
   const s = S.records.settings || data().settings || DEFAULT_SETTINGS;
@@ -660,6 +733,12 @@ const I = {
   expenses:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20M6 15h4"/></svg>',
   budgets:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
   business:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg>',
+  settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
+  user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+  team:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5c2.6 0 4.6 1.6 5.5 4.5"/></svg>',
+  layers:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4" stroke-linecap="round"/></svg>',
+  data:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>',
   plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
   x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   arrowIn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 7L7 17M7 9v8h8"/></svg>',
@@ -667,7 +746,7 @@ const I = {
   share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v13M7 8l5-5 5 5M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></svg>',
   file:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6M9 14h6M9 17h4"/></svg>',
 };
-const VIEWS = [["dashboard","Home"],["invoices","Invoices"],["receipts","Receipts"],["expenses","Expenses"],["budgets","Budgets"],["business","Business"]];
+const VIEWS = [["dashboard","Home"],["invoices","Invoices"],["receipts","Receipts"],["expenses","Expenses"],["budgets","Budgets"],["settings","Settings"]];
 
 /* ---------- computations ---------- */
 function monthTotals(mk) {
@@ -745,13 +824,15 @@ function render(opts) {
   if (CLOUD && A.phase !== "ready") { renderGate(); return; }
   const st = settings();
   const wsName = CLOUD ? (A.workspaces.find(w => w.id === A.ws) || {}).name : "";
-  $("#bizName").textContent = st.business.name || wsName || "Set up your business";
+  $("#bizName").textContent = (CLOUD && exampleMode() ? wsName : st.business.name || wsName) || "Set up your business";
   $("#brandMark").innerHTML = st.logo ? `<img src="${st.logo}" alt="">` : "<span>₵</span>";
   updateSyncNote();
+  const me = myProfile();
+  $("#meChip").innerHTML = `${avatarHTML(me.full_name || me.email, me.avatar, "--pink")}<span style="min-width:0"><b>${esc(me.full_name || (CLOUD ? me.email : "Your profile"))}</b><small>${esc(CLOUD ? roleLabel(A.role) : me.job_title || "Set up your profile")}</small></span>`;
   const due = all("invoice").filter(i => ["sent","overdue"].includes(invStatus(i))).length;
   $("#nav").innerHTML = VIEWS.map(([k, l]) => `<a href="#${k}" ${S.view === k ? 'aria-current="page"' : ""}>${I[k]}<span>${k === "dashboard" ? "Dashboard" : l}</span>${k === "invoices" && due ? `<span class="count">${due}</span>` : ""}</a>`).join("");
   $("#tabbar").innerHTML = VIEWS.map(([k, l]) => `<a href="#${k}" ${S.view === k ? 'aria-current="page"' : ""}>${I[k]}<span>${l}</span></a>`).join("");
-  const v = {dashboard:vDashboard, invoices:vInvoices, receipts:vReceipts, expenses:vExpenses, budgets:vBudgets, business:vBusiness}[S.view] || vDashboard;
+  const v = {dashboard:vDashboard, invoices:vInvoices, receipts:vReceipts, expenses:vExpenses, budgets:vBudgets, settings:vSettings}[S.view] || vDashboard;
   const y = window.scrollY;
   $("#view").innerHTML = (exampleMode() ? `<div class="banner"><span><b>Example data.</b> Explore freely. These samples disappear as soon as you add your first record.</span><button class="btn sm" data-action="dismiss-examples">Start with an empty ledger</button></div>` : offlineNudge() + setupNudge() + backupNudge()) + v();
   window.scrollTo(0, y);
@@ -766,7 +847,7 @@ function offlineNudge() {
 function setupNudge() {
   const st = settings();
   if (S.view !== "dashboard" || exampleMode() || (st.business.name && st.logo) || !canEditBiz()) return "";
-  return `<div class="banner pink"><span><b>Add your business ${st.business.name ? "logo" : "name and logo"}.</b> They appear at the top of every invoice and receipt.</span><a class="btn sm primary" href="#business">Set up business</a></div>`;
+  return `<div class="banner pink"><span><b>Add your business ${st.business.name ? "logo" : "name and logo"}.</b> They appear at the top of every invoice and receipt.</span><a class="btn sm primary" href="#settings-business">Set up business</a></div>`;
 }
 function backupNudge() {
   if (CLOUD || S.view !== "dashboard" || realCount() < 3) return "";
@@ -786,7 +867,7 @@ function vDashboard() {
   const inc6 = {}; all("receipt").filter(r => months.includes(monthKey(r.date))).forEach(r => inc6[r.payer] = (inc6[r.payer] || 0) + num(r.amount));
   const inc6Total = Object.values(inc6).reduce((a, b) => a + b, 0);
   return `
-  <div class="head"><div><h1>Hello${CLOUD && A.user ? ", " + esc(((A.user.user_metadata || {}).full_name || (A.user.user_metadata || {}).name || A.user.email.split("@")[0]).split(" ")[0]) : st.business.name ? ", " + esc(st.business.name.split(" ")[0]) : ""}</h1><p>Your money at a glance · ${monthLabel(mk, true)}</p></div>
+  <div class="head"><div><h1>Hello${(() => { const p = myProfile(), n = p.full_name || (CLOUD && p.email ? p.email.split("@")[0] : ""); return n ? ", " + esc(n.split(" ")[0]) : ""; })()}</h1><p>Your money at a glance · ${monthLabel(mk, true)}</p></div>
     <div class="head-actions">
       <button class="btn sm ghost" data-action="dash-month" data-dir="-1" aria-label="Previous month">‹</button>
       <input type="month" id="dashMonth" value="${mk}" aria-label="Month">
@@ -919,59 +1000,87 @@ const AV = ["--pink","--olive","--lav","--peach","--mint","--sky","--butter"];
 const initials = n => (n || "?").split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join("");
 const roleLabel = r => ({owner:"Owner", admin:"Admin", member:"Member"}[r] || r);
 const inviteURL = tok => redirectURL() + "?invite=" + tok;
-function vBusiness() {
-  const st = settings(), b = st.business, lb = (S.records.settings || {}).lastBackup, ed = canEditBiz();
-  const legacy = CLOUD && isManager() ? legacyRecords().filter(r => r.kind !== "settings").length : 0;
+function setTabs() {
+  return [["profile","Profile","user"],["business","Business","business"]]
+    .concat(CLOUD ? [["team","Team","team"],["businesses","Businesses","layers"],["security","Security","shield"]] : [])
+    .concat([["data","Data & backup","data"]]);
+}
+function vSettings() {
+  const tabs = setTabs();
+  if (!tabs.some(t => t[0] === S.setTab)) S.setTab = "profile";
+  const body = {profile:sProfile, business:sBusiness, team:sTeam, businesses:sBusinesses, security:sSecurity, data:sData}[S.setTab]();
   return `
-  <div class="head"><div><h1>Business</h1><p>${CLOUD ? "Business details, your team and your account." : "These details and your logo appear on every invoice and receipt."}</p></div></div>
-  ${CLOUD && !ed ? `<div class="banner lav"><span>You're a <b>${roleLabel(A.role).toLowerCase()}</b> of this business. Owners and admins manage these details.</span></div>` : ""}
-  <section class="panel"><div class="panel-head"><h2>Company logo</h2><span class="sub">Shown on invoices, receipts and PDFs</span></div>
+  <div class="head"><div><h1>Settings</h1><p>${CLOUD ? "Your profile, your business, your team and your account." : "Your profile, your business details and your data."}</p></div></div>
+  <div class="settings">
+    <nav class="set-nav" aria-label="Settings sections">${tabs.map(([k, l, ic]) => `<a href="#settings-${k}" ${S.setTab === k ? 'aria-current="page"' : ""}>${I[ic]}<span>${l}</span></a>`).join("")}</nav>
+    <div class="set-body">${S.setMsg ? `<div class="msg ${S.setMsg.type}" role="status">${esc(S.setMsg.text)}</div>` : ""}${body}</div>
+  </div>`;
+}
+const confirmRow = (text, cancel, go, goLabel, extra) => `<div class="confirm"><span>${text}</span>${extra || ""}<span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" data-action="${cancel}">Cancel</button><button class="btn sm danger solid" data-action="${go}">${goLabel}</button></span></div>`;
+
+function sProfile() {
+  const p = myProfile();
+  return `<section class="panel"><div class="panel-head"><h2>Your profile</h2><span class="sub">${CLOUD ? "Seen by your teammates" : "Saved on this device"}</span></div>
+    <div class="profile-top">${avatarHTML(p.full_name || p.email, p.avatar, "--pink", "xl")}
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0"><b style="font-size:18px">${esc(p.full_name || "Add your name")}</b>
+        <span class="muted">${esc([p.job_title, CLOUD ? p.email : ""].filter(Boolean).join(" · ") || "Your photo and name appear on the dashboard" + (CLOUD ? " and your team list." : "."))}</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn sm olive file-btn">${p.avatar ? "Change photo" : "Add photo"}<input type="file" id="avatarInput" accept="image/png,image/jpeg,image/webp,image/heic"></label>
+        ${p.avatar ? `<button class="btn sm danger" data-action="remove-avatar">Remove photo</button>` : ""}</div></div></div>
+    <form id="profileForm" class="form-grid" style="margin-top:18px">
+      <div class="field full"><label for="pfName">Full name</label><input type="text" id="pfName" maxlength="80" autocomplete="name" value="${esc(p.full_name)}" placeholder="e.g. Seyram Kwesi"></div>
+      <div class="field"><label for="pfTitle">Job title</label><input type="text" id="pfTitle" maxlength="80" autocomplete="organization-title" value="${esc(p.job_title)}" placeholder="e.g. Producer"></div>
+      <div class="field"><label for="pfPhone">Phone</label><input type="tel" id="pfPhone" maxlength="40" autocomplete="tel" value="${esc(p.phone)}"></div>
+      ${CLOUD ? `<div class="field full"><label for="pfEmail">Email</label><input type="email" id="pfEmail" value="${esc(p.email)}" disabled><span class="muted">Change your sign-in email under <a class="sub" href="#settings-security">Security</a>.</span></div>` : ""}
+      <div class="field full"><div><button class="btn primary" type="submit">Save profile</button></div></div>
+    </form></section>`;
+}
+
+function sBusiness() {
+  const st = settings(), b = st.business, ed = canEditBiz();
+  return `${CLOUD && !ed ? `<div class="banner lav"><span>You're a <b>${roleLabel(A.role).toLowerCase()}</b> of this business. Owners and admins manage these details.</span></div>` : ""}
+  <section class="panel"><div class="panel-head"><h2>Company logo</h2><span class="sub">On invoices, receipts and PDFs</span></div>
     <div class="logo-box"><div class="preview">${st.logo ? `<img src="${st.logo}" alt="Your logo">` : "No logo"}</div>
       ${ed ? `<div style="display:flex;flex-direction:column;gap:8px;min-width:0"><span class="muted">PNG with a transparent background looks best. It's resized automatically.</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn olive file-btn">${st.logo ? "Replace logo" : "Upload logo"}<input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp"></label>
         ${st.logo ? `<button class="btn danger" data-action="remove-logo">Remove</button>` : ""}</div></div>` : ""}</div></section>
-  <section class="panel"><div class="panel-head"><h2>Details</h2></div>
-    <form id="bizForm"><fieldset class="form-grid" ${ed ? "" : "disabled"}>
-      <div class="field full"><label for="bzName">Business name</label><input type="text" id="bzName" name="name" value="${esc(b.name)}" placeholder="e.g. Asante Media Ltd."></div>
+  <form id="bizForm" style="display:flex;flex-direction:column;gap:20px"><fieldset style="display:contents" ${ed ? "" : "disabled"}>
+  <section class="panel"><div class="panel-head"><h2>Business details</h2></div><div class="form-grid">
+      <div class="field full"><label for="bzName">Business name</label><input type="text" id="bzName" name="name" maxlength="120" value="${esc(b.name || (CLOUD ? (A.workspaces.find(w => w.id === A.ws) || {}).name || "" : ""))}" placeholder="e.g. Asante Media Ltd."></div>
       <div class="field"><label for="bzEmail">Email</label><input type="email" id="bzEmail" name="email" value="${esc(b.email)}"></div>
       <div class="field"><label for="bzPhone">Phone</label><input type="tel" id="bzPhone" name="phone" value="${esc(b.phone)}"></div>
       <div class="field full"><label for="bzAddr">Address</label><textarea id="bzAddr" name="address" rows="2">${esc(b.address)}</textarea></div>
       <div class="field"><label for="bzMomo">Mobile Money details</label><input type="text" id="bzMomo" name="momo" value="${esc(b.momo)}" placeholder="Number and account name"></div>
       <div class="field"><label for="bzBank">Bank details</label><input type="text" id="bzBank" name="bank" value="${esc(b.bank)}" placeholder="Bank, account number"></div>
+  </div></section>
+  <section class="panel"><div class="panel-head"><h2>Invoice defaults</h2><span class="sub">Used for every new invoice</span></div><div class="form-grid">
       <div class="field"><label for="bzCur">Currency</label><select id="bzCur" name="currency">${CURRENCIES.map(c => `<option ${st.currency === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
-      <div class="field"><label for="bzTax">Default tax / VAT %</label><input type="number" inputmode="decimal" min="0" step="0.5" id="bzTax" name="taxRate" value="${num(st.taxRate)}"></div>
+      <div class="field"><label for="bzTax">Tax / VAT %</label><input type="number" inputmode="decimal" min="0" step="0.5" id="bzTax" name="taxRate" value="${num(st.taxRate)}"></div>
+      <div class="field"><label for="bzTerms">Payment due (days after issue)</label><input type="number" inputmode="numeric" min="0" max="365" step="1" id="bzTerms" name="terms" value="${st.terms === undefined ? 14 : num(st.terms)}"></div>
       <div class="field"><label for="bzPre">Invoice number prefix</label><input type="text" id="bzPre" name="prefix" value="${esc(st.prefix)}" maxlength="8"></div>
-      ${ed ? `<div class="field full"><div><button class="btn primary" type="submit">Save details</button></div></div>` : ""}
-    </fieldset></form></section>
-  ${CLOUD ? vTeam() : ""}
-  <section class="panel"><div class="panel-head"><h2>Backup${CLOUD ? " &amp; export" : " &amp; restore"}</h2><span class="sub">${CLOUD ? "" : lb ? "Last backup " + fmtDate(lb) : "No backup yet"}</span></div>
-    <p class="muted" style="margin:0 0 14px">${CLOUD ? "Your records are saved to your team's account and sync to every signed-in device. You can still save a copy as a file." : "Your records are stored only on this device. Save a backup file to iCloud Drive or send it to yourself, and restore it on a new phone or browser."}</p>
-    ${S.pendingImport ? `<div class="confirm" style="margin-bottom:12px"><span>${CLOUD ? "Add" : "Replace everything on this device with"} <b>${S.pendingImport.count}</b> records from ${esc(S.pendingImport.name)}${CLOUD ? " to this business? Records with the same ID are overwritten." : "?"}</span>
-      <span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" data-action="cancel-import">Cancel</button><button class="btn sm danger solid" data-action="confirm-import">${CLOUD ? "Add records" : "Replace"}</button></span></div>` : ""}
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn olive" data-action="export-backup">${I.share}Save backup</button>
-      ${isManager() ? `<label class="btn file-btn">${CLOUD ? "Add records from a backup" : "Restore from backup"}<input type="file" id="importInput" accept="application/json,.json"></label>` : ""}
-      ${legacy ? `<button class="btn" data-action="import-legacy">Bring over ${legacy} record${legacy > 1 ? "s" : ""} from this device</button>` : ""}</div></section>
-  ${CLOUD ? vAccount() : ""}`;
+      <div class="field full"><label for="bzNotes">Note printed on invoices</label><textarea id="bzNotes" name="invoiceNotes" rows="2" maxlength="400">${esc(st.invoiceNotes === undefined ? "Thank you for your business." : st.invoiceNotes)}</textarea></div>
+      ${ed ? `<div class="field full"><div><button class="btn primary" type="submit">Save business settings</button></div></div>` : ""}
+  </div></section></fieldset></form>`;
 }
-function vTeam() {
-  const mgr = isManager(), me = A.user.id, ownerMe = A.role === "owner";
+
+function sTeam() {
+  const mgr = isManager(), me = A.user.id, ownerMe = A.role === "owner", c = S.setConfirm;
   const rows = A.members.map((m, i) => {
-    const you = m.user_id === me, name = m.display_name || (m.email || "").split("@")[0];
+    const you = m.user_id === me, pr = A.profiles[m.user_id] || {}, name = pr.full_name || m.display_name || (m.email || "").split("@")[0];
     let actions = `<span class="pill role-${m.role}">${roleLabel(m.role)}</span>`;
     if (mgr && !you && m.role !== "owner") {
-      if (A.confirm && A.confirm.type === "remove" && A.confirm.id === m.user_id)
+      if (c && c.type === "remove" && c.id === m.user_id)
         actions = `<span class="muted">Remove ${esc(name)}?</span><button class="btn sm" data-action="cancel-confirm">Keep</button><button class="btn sm danger solid" data-action="do-remove-member" data-id="${m.user_id}">Remove</button>`;
       else actions = `<select aria-label="Role for ${esc(name)}" data-role-for="${m.user_id}"><option value="member" ${m.role === "member" ? "selected" : ""}>Member</option><option value="admin" ${m.role === "admin" ? "selected" : ""}>Admin</option></select>
         <button class="btn sm danger" data-action="ask-remove-member" data-id="${m.user_id}">Remove</button>`;
     }
-    return `<div class="member"><span class="avatar" style="background:var(${AV[i % AV.length]})">${esc(initials(name))}</span>
-      <div style="min-width:0"><div class="t">${esc(name)}${you ? " (you)" : ""}</div><div class="s">${esc(m.email || "")}</div></div><div class="member-actions">${actions}</div></div>`;
+    return `<div class="member">${avatarHTML(name, pr.avatar, AV[i % AV.length])}
+      <div style="min-width:0"><div class="t">${esc(name)}${you ? " (you)" : ""}</div><div class="s">${esc([pr.job_title, m.email].filter(Boolean).join(" · "))}</div></div><div class="member-actions">${actions}</div></div>`;
   }).join("");
   const others = A.members.filter(m => m.user_id !== me);
   return `<section class="panel"><div class="panel-head"><h2>Team</h2><span class="sub">${A.members.length} ${A.members.length === 1 ? "person" : "people"}</span></div>
     <div>${rows || '<div class="spinner"></div>'}</div>
-    <p class="muted" style="margin:14px 0 0">Members add and edit invoices, receipts and expenses. Admins can also delete records, edit business details and invite people. The owner can do everything.</p>
-    ${mgr ? `<div style="margin-top:18px;display:flex;flex-direction:column;gap:12px"><h3 style="font-size:16px">Invite someone</h3>
+    <p class="muted" style="margin:14px 0 0">Members add and edit invoices, receipts and expenses. Admins can also delete records, change business settings and invite people. The owner can do everything.</p></section>
+    ${mgr ? `<section class="panel"><div class="panel-head"><h2>Invite someone</h2></div><div style="display:flex;flex-direction:column;gap:12px">
       <div class="row-inline"><div class="field"><label for="invRole">Role</label><select id="invRole"><option value="member">Member</option><option value="admin">Admin</option></select></div>
         <div class="field"><label for="invNote">Who is it for? (optional)</label><input type="text" id="invNote" maxlength="60" placeholder="e.g. Kofi, accountant"></div>
         <button class="btn primary" data-action="create-invite">Create invite link</button></div>
@@ -979,27 +1088,77 @@ function vTeam() {
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm olive" data-action="share-invite" data-token="${A.newLink.token}">${I.share}Share link</button><button class="btn sm" data-action="copy-invite" data-token="${A.newLink.token}">Copy link</button></div></div>` : ""}
       ${A.invites.length ? `<div><span class="lbl">Open invites</span>${A.invites.map(i => `<div class="member" style="grid-template-columns:minmax(0,1fr) auto"><div style="min-width:0"><div class="t">${esc(i.note || "Invite link")} · ${roleLabel(i.role)}</div><div class="s">Expires ${fmtDate(i.expires_at.slice(0, 10))}</div></div>
         <div class="member-actions"><button class="btn sm" data-action="copy-invite" data-token="${i.token}">Copy</button><button class="btn sm danger" data-action="revoke-invite" data-token="${i.token}">Revoke</button></div></div>`).join("")}</div>` : ""}
-    </div>` : ""}
-    ${ownerMe && others.length ? `<div style="margin-top:18px"><h3 style="font-size:16px;margin-bottom:8px">Transfer ownership</h3>
-      ${A.confirm && A.confirm.type === "transfer" ? `<div class="confirm"><span>Make <b>${esc(memberName(A.confirm.id))}</b> the owner? You'll become an admin.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" data-action="cancel-confirm">Cancel</button><button class="btn sm danger solid" data-action="do-transfer">Transfer</button></span></div>`
-        : `<div class="row-inline"><div class="field"><label for="xferTo">New owner</label><select id="xferTo">${others.map(m => `<option value="${m.user_id}">${esc(m.display_name || m.email)}</option>`).join("")}</select></div><button class="btn" data-action="ask-transfer">Transfer…</button></div>`}</div>` : ""}
-    ${!ownerMe ? `<div style="margin-top:18px">${A.confirm && A.confirm.type === "leave" ? `<div class="confirm"><span>Leave this business? You'll lose access to its records.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" data-action="cancel-confirm">Stay</button><button class="btn sm danger solid" data-action="do-leave">Leave</button></span></div>` : `<button class="btn danger" data-action="ask-leave">Leave this business</button>`}</div>` : ""}
-  </section>`;
+    </div></section>` : ""}
+    ${ownerMe && others.length ? `<section class="panel"><div class="panel-head"><h2>Transfer ownership</h2></div>
+      ${c && c.type === "transfer" ? confirmRow(`Make <b>${esc(memberName(c.id))}</b> the owner? You'll become an admin.`, "cancel-confirm", "do-transfer", "Transfer")
+        : `<div class="row-inline"><div class="field"><label for="xferTo">New owner</label><select id="xferTo">${others.map(m => `<option value="${m.user_id}">${esc((A.profiles[m.user_id] || {}).full_name || m.display_name || m.email)}</option>`).join("")}</select></div><button class="btn" data-action="ask-transfer">Transfer…</button></div>`}</section>` : ""}
+    ${!ownerMe ? `<section class="panel danger-zone"><div class="panel-head"><h2>Leave this business</h2></div>
+      ${c && c.type === "leave" ? confirmRow("Leave this business? You'll lose access to its records until someone invites you again.", "cancel-confirm", "do-leave", "Leave") : `<p class="lead">You'll lose access to its invoices, receipts and expenses.</p><button class="btn danger" data-action="ask-leave">Leave business</button>`}</section>` : ""}`;
 }
-function vAccount() {
-  const u = A.user, meta = u.user_metadata || {};
-  return `<section class="panel"><div class="panel-head"><h2>Your account</h2></div>
-    <div class="member" style="border:0"><span class="avatar" style="background:var(--pink)">${esc(initials(meta.full_name || meta.name || u.email))}</span>
-      <div style="min-width:0"><div class="t">${esc(meta.full_name || meta.name || u.email.split("@")[0])}</div><div class="s">${esc(u.email)}</div></div><span></span></div>
-    <form id="nameForm" class="row-inline" style="margin-top:8px"><div class="field"><label for="acName">Display name</label><input type="text" id="acName" maxlength="60" value="${esc(meta.full_name || meta.name || "")}"></div><button class="btn">Save name</button></form>
-    <form id="passForm" class="row-inline" style="margin-top:12px"><div class="field"><label for="acPass">${(u.app_metadata?.providers || []).includes("email") ? "New password" : "Set a password"}</label><input type="password" id="acPass" autocomplete="new-password" minlength="8" placeholder="At least 8 characters"></div><button class="btn">Update password</button></form>
-    <div style="margin-top:20px"><span class="lbl">Your businesses</span>
-      <div class="ws-list" style="margin-top:8px">${A.workspaces.map(w => `<div class="ws-row ${w.id === A.ws ? "current" : ""}"><div style="min-width:0"><b>${esc(w.name)}</b><div class="muted">${roleLabel(w.role)}</div></div>
-        ${w.id === A.ws ? '<span class="muted">Open</span>' : `<button class="btn sm" data-action="switch-ws" data-id="${w.id}">Open</button>`}</div>`).join("")}</div>
-      <form id="newWsForm" class="row-inline" style="margin-top:10px"><div class="field"><label for="newWsName">Start another business</label><input type="text" id="newWsName" maxlength="120" placeholder="Business name"></div><button class="btn">Create</button></form></div>
-    <div style="margin-top:20px">${A.confirm && A.confirm.type === "signout" ? `<div class="confirm"><span>${pendingCount() ? `<b>${pendingCount()} change${pendingCount() > 1 ? "s haven't" : " hasn't"} synced yet</b> and will be lost. ` : ""}Sign out of this device?</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" data-action="cancel-confirm">Cancel</button><button class="btn sm danger solid" data-action="sign-out">Sign out</button></span></div>`
-      : `<button class="btn" data-action="ask-signout">Sign out</button>`}</div>
-  </section>`;
+
+function sBusinesses() {
+  const c = S.setConfirm, cur = A.workspaces.find(w => w.id === A.ws) || {}, ownerMe = A.role === "owner";
+  return `<section class="panel"><div class="panel-head"><h2>Your businesses</h2><span class="sub">Each one has its own books and team</span></div>
+    <div class="ws-list">${A.workspaces.map(w => `<div class="ws-row ${w.id === A.ws ? "current" : ""}"><div style="min-width:0"><b>${esc(w.name)}</b><div class="muted">${roleLabel(w.role)}</div></div>
+      ${w.id === A.ws ? '<span class="muted">Open now</span>' : `<button class="btn sm" data-action="switch-ws" data-id="${w.id}">Open</button>`}</div>`).join("")}</div>
+    <form id="newWsForm" class="row-inline" style="margin-top:14px"><div class="field"><label for="newWsName">Start another business</label><input type="text" id="newWsName" maxlength="120" placeholder="Business name"></div><button class="btn">Create</button></form></section>
+    ${ownerMe ? `<section class="panel danger-zone"><div class="panel-head"><h2>Delete ${esc(cur.name || "this business")}</h2></div>
+      <p class="lead">Permanently deletes this business with all its invoices, receipts, expenses and invites, for everyone on the team. This can't be undone.</p>
+      ${c && c.type === "delete-ws" ? `<div class="confirm" style="flex-direction:column;align-items:stretch"><label for="delWsName">Type <b>${esc(cur.name)}</b> to confirm</label><input type="text" id="delWsName" autocomplete="off">
+        <div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn sm" data-action="cancel-confirm">Cancel</button><button class="btn sm danger solid" data-action="do-delete-ws">Delete business</button></div></div>`
+        : `<button class="btn danger" data-action="ask-delete-ws">Delete business…</button>`}</section>` : ""}`;
+}
+
+function sSecurity() {
+  const u = A.user, c = S.setConfirm, prov = (u.app_metadata && u.app_metadata.providers) || ["email"];
+  const provName = {email:"Email", google:"Google"};
+  return `<section class="panel"><div class="panel-head"><h2>Sign-in email</h2></div>
+    <div class="kv"><span>Email</span><b>${esc(u.email)}</b>${u.new_email ? `<span>Pending</span><span>${esc(u.new_email)} · waiting for you to confirm from that inbox</span>` : ""}
+      <span>Sign-in methods</span><span class="chips-row">${prov.map(p => `<span class="tag" style="background:var(--sunken)">${esc(provName[p] || p)}</span>`).join("")}</span>
+      <span>Account created</span><span>${u.created_at ? fmtDate(u.created_at.slice(0, 10)) : "—"}</span>
+      <span>Last sign-in</span><span>${u.last_sign_in_at ? fmtDate(u.last_sign_in_at.slice(0, 10)) : "—"}</span></div>
+    <form id="emailForm" class="row-inline" style="margin-top:16px"><div class="field"><label for="acEmail">New email</label><input type="email" id="acEmail" autocomplete="email" required></div><button class="btn">Change email</button></form>
+    <p class="muted" style="margin:8px 0 0">We'll send a confirmation link. Your email changes once you confirm it.</p></section>
+  <section class="panel"><div class="panel-head"><h2>Password</h2></div>
+    <form id="passForm" class="form-grid">
+      <div class="field"><label for="acPass">${prov.includes("email") ? "New password" : "Set a password"}</label><input type="password" id="acPass" autocomplete="new-password" minlength="8" required></div>
+      <div class="field"><label for="acPass2">Confirm password</label><input type="password" id="acPass2" autocomplete="new-password" minlength="8" required></div>
+      <div class="field full"><div><button class="btn primary" type="submit">Update password</button></div></div></form>
+    ${prov.includes("email") ? "" : `<p class="muted" style="margin:10px 0 0">A password lets you sign in without ${esc(prov.map(p => provName[p] || p).join(" or "))}.</p>`}</section>
+  <section class="panel"><div class="panel-head"><h2>Devices</h2></div>
+    ${c && c.type === "signout" ? confirmRow(`${pendingCount() ? `<b>${pendingCount()} change${pendingCount() > 1 ? "s haven't" : " hasn't"} synced yet</b> and will be lost. ` : ""}Sign out of this device?`, "cancel-confirm", "sign-out", "Sign out")
+      : c && c.type === "signout-all" ? confirmRow("Sign out on every phone and computer, including this one?", "cancel-confirm", "sign-out-all", "Sign out everywhere")
+      : `<p class="lead">Lost a phone, or signed in on a shared computer? Sign out everywhere.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-action="ask-signout">Sign out of this device</button><button class="btn danger" data-action="ask-signout-all">Sign out everywhere</button></div>`}</section>
+  <section class="panel danger-zone"><div class="panel-head"><h2>Delete account</h2></div>
+    <p class="lead">Deletes your login and profile. Businesses you own on your own are deleted too. If you own a business with other members, transfer it first.</p>
+    ${c && c.type === "delete-account" ? `<div class="confirm" style="flex-direction:column;align-items:stretch"><label for="delAcc">Type <b>DELETE</b> to confirm</label><input type="text" id="delAcc" autocomplete="off" autocapitalize="characters">
+      <div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn sm" data-action="cancel-confirm">Cancel</button><button class="btn sm danger solid" data-action="do-delete-account">Delete my account</button></div></div>`
+      : `<button class="btn danger" data-action="ask-delete-account">Delete my account…</button>`}</section>`;
+}
+
+function sData() {
+  const lb = (S.records.settings || {}).lastBackup, c = S.setConfirm, n = realCount();
+  const legacy = CLOUD && isManager() ? legacyRecords().filter(r => r.kind !== "settings").length : 0;
+  const counts = ["invoice","receipt","expense"].map(k => [k, Object.values(S.records).filter(r => r.kind === k).length]);
+  return `<section class="panel"><div class="panel-head"><h2>Your records</h2><span class="sub">${CLOUD ? (navigator.onLine ? (pendingCount() ? pendingCount() + " waiting to sync" : "All synced") : "Offline") : "On this device"}</span></div>
+    <div class="kv">${counts.map(([k, v]) => `<span>${k[0].toUpperCase() + k.slice(1)}s</span><b>${v}</b>`).join("")}
+      <span>Stored</span><span>${CLOUD ? "In your team's account, with an offline copy on this device" : "Only on this device"}</span></div></section>
+  <section class="panel"><div class="panel-head"><h2>Backup${CLOUD ? " &amp; export" : " &amp; restore"}</h2><span class="sub">${CLOUD ? "" : lb ? "Last backup " + fmtDate(lb) : "No backup yet"}</span></div>
+    <p class="lead">${CLOUD ? "Save a copy of this business's records as a file, for your own archive or an accountant." : "Save a backup file to iCloud Drive or send it to yourself, and restore it on a new phone or browser."}</p>
+    ${S.pendingImport ? `<div class="confirm" style="margin-bottom:12px"><span>${CLOUD ? "Add" : "Replace everything on this device with"} <b>${S.pendingImport.count}</b> records from ${esc(S.pendingImport.name)}${CLOUD ? " to this business? Records with the same ID are overwritten." : "?"}</span>
+      <span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" data-action="cancel-import">Cancel</button><button class="btn sm danger solid" data-action="confirm-import">${CLOUD ? "Add records" : "Replace"}</button></span></div>` : ""}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn olive" data-action="export-backup">${I.share}Save backup</button>
+      ${isManager() ? `<label class="btn file-btn">${CLOUD ? "Add records from a backup" : "Restore from backup"}<input type="file" id="importInput" accept="application/json,.json"></label>` : ""}
+      ${legacy ? `<button class="btn" data-action="import-legacy">Bring over ${legacy} record${legacy > 1 ? "s" : ""} from this device</button>` : ""}</div></section>
+  ${CLOUD ? `<section class="panel"><div class="panel-head"><h2>Offline copy</h2></div>
+    <p class="lead">If something looks out of date, reload this business's records from your team's account. Changes waiting to sync are kept.</p>
+    <button class="btn" data-action="refresh-data">Reload from account</button></section>`
+  : `<section class="panel danger-zone"><div class="panel-head"><h2>Erase this device</h2></div>
+    <p class="lead">Deletes all ${n} records, your business details and your profile from this device. Save a backup first if you might need them.</p>
+    ${c && c.type === "erase" ? `<div class="confirm" style="flex-direction:column;align-items:stretch"><label for="eraseTxt">Type <b>ERASE</b> to confirm</label><input type="text" id="eraseTxt" autocomplete="off" autocapitalize="characters">
+      <div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn sm" data-action="cancel-confirm">Cancel</button><button class="btn sm danger solid" data-action="do-erase">Erase everything</button></div></div>`
+      : `<button class="btn danger" data-action="ask-erase">Erase data on this device…</button>`}</section>`}
+  <p class="byline" style="text-align:center">Cedi Ledger · ${CLOUD ? "Team accounts" : "Single-device mode"}</p>`;
 }
 
 /* ---------- documents ---------- */
@@ -1185,7 +1344,7 @@ function mInvoiceForm(m) {
           <input type="text" id="fBizName" value="${esc(bname)}" placeholder="Business name (shown on the invoice)" aria-label="Business name">
           <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn sm olive file-btn">${st.logo ? "Change logo" : "Add logo"}<input type="file" id="formLogoInput" accept="image/png,image/jpeg,image/webp"></label>
           ${st.logo ? `<button type="button" class="btn sm danger" data-action="remove-logo-form">Remove logo</button>` : ""}
-          <a class="btn sm ghost" style="white-space:normal;text-align:left;padding-left:2px" href="#business" data-action="close">Address, phone &amp; payment details</a></div></div></div></div>`}
+          <a class="btn sm ghost" style="white-space:normal;text-align:left;padding-left:2px" href="#settings-business" data-action="close">Address, phone &amp; payment details</a></div></div></div></div>`}
     <div class="form-grid">
       <div class="field"><label for="fNum">Invoice number</label><input type="text" id="fNum" name="number" value="${esc(d.number)}" required></div>
       <div class="field"><label for="fStatus">Status</label><select id="fStatus" name="status">${["draft","sent","paid"].map(s => `<option value="${s}" ${d.status === s ? "selected" : ""}>${statusLabel(s)}</option>`).join("")}</select></div>
@@ -1263,6 +1422,12 @@ function mExpenseForm(m) {
 }
 
 /* ---------- forms ---------- */
+function readProfileForm() {
+  const g = id => { const el = document.getElementById(id); return el ? el.value.trim() : undefined; };
+  const out = {full_name:g("pfName"), job_title:g("pfTitle"), phone:g("pfPhone")};
+  Object.keys(out).forEach(k => out[k] === undefined && delete out[k]);
+  return out;
+}
 function readForm(form, into) {
   form.querySelectorAll("[name]").forEach(el => {
     const path = el.name.split("."); let o = into;
@@ -1277,8 +1442,8 @@ function syncInvoiceDraft() {
   const d = S.modal.draft; readForm(f, d);
   f.querySelectorAll("[data-item]").forEach(el => { d.items[+el.dataset.item][el.dataset.k] = el.dataset.k === "desc" ? el.value : num(el.value); });
 }
-const newInvoiceDraft = () => { const t = today(); return {id:rid("inv"), kind:"invoice", number:nextNumber("invoice"), status:"draft", issueDate:t, dueDate:addDays(t, 14),
-  client:{name:"", email:"", phone:"", address:""}, items:[{desc:"", qty:1, price:0}], discount:0, taxRate:num(settings().taxRate), notes:"Thank you for your business.", createdAt:t}; };
+const newInvoiceDraft = () => { const t = today(), st = settings(); return {id:rid("inv"), kind:"invoice", number:nextNumber("invoice"), status:"draft", issueDate:t, dueDate:addDays(t, st.terms === undefined || st.terms === "" ? 14 : num(st.terms)),
+  client:{name:"", email:"", phone:"", address:""}, items:[{desc:"", qty:1, price:0}], discount:0, taxRate:num(settings().taxRate), notes:st.invoiceNotes !== undefined ? st.invoiceNotes : "Thank you for your business.", createdAt:t}; };
 const newExpenseDraft = () => ({id:rid("exp"), kind:"expense", date:today(), vendor:"", amount:0, category:CATEGORIES[0], method:METHODS[0], note:""});
 const newReceiptDraft = inv => ({id:rid("rct"), kind:"receipt", number:nextNumber("receipt"), date:today(), payer:inv ? inv.client?.name || "" : "",
   amount:inv ? invoiceTotals(inv).total : 0, method:METHODS[0], reference:"", note:inv ? "Payment for " + inv.number : "", invoiceId:inv ? inv.id : ""});
@@ -1385,27 +1550,56 @@ ${inviteURL(el.dataset.token)}`, "Join " + name); break;
       A.invites = A.invites.filter(i => i.token !== el.dataset.token); if (A.newLink && A.newLink.token === el.dataset.token) A.newLink = null;
       render(); toast("Invite revoked"); break;
     }
-    case "ask-remove-member": A.confirm = {type:"remove", id:el.dataset.id}; render(); break;
-    case "ask-transfer": A.confirm = {type:"transfer", id:$("#xferTo").value}; render(); break;
-    case "ask-leave": A.confirm = {type:"leave"}; render(); break;
-    case "ask-signout": A.confirm = {type:"signout"}; render(); break;
-    case "cancel-confirm": A.confirm = null; render(); break;
+    case "ask-remove-member": S.setConfirm = {type:"remove", id:el.dataset.id}; render(); break;
+    case "ask-transfer": S.setConfirm = {type:"transfer", id:$("#xferTo").value}; render(); break;
+    case "ask-leave": S.setConfirm = {type:"leave"}; render(); break;
+    case "ask-signout": S.setConfirm = {type:"signout"}; render(); break;
+    case "cancel-confirm": S.setConfirm = null; render(); break;
     case "do-remove-member": {
       const {error} = await sb.from("members").delete().eq("workspace_id", A.ws).eq("user_id", el.dataset.id);
-      A.confirm = null; if (error) toast("Couldn't remove: " + error.message); else toast("Removed from the team"); loadTeam(); break;
+      S.setConfirm = null; if (error) toast("Couldn't remove: " + error.message); else toast("Removed from the team"); loadTeam(); break;
     }
     case "do-transfer": {
-      const {error} = await sb.rpc("transfer_ownership", {p_workspace:A.ws, p_user:A.confirm.id});
-      A.confirm = null; if (error) toast(error.message); else { toast("Ownership transferred"); await loadWorkspaces(); } loadTeam(); break;
+      const {error} = await sb.rpc("transfer_ownership", {p_workspace:A.ws, p_user:S.setConfirm.id});
+      S.setConfirm = null; if (error) toast(error.message); else { toast("Ownership transferred"); await loadWorkspaces(); } loadTeam(); break;
     }
     case "do-leave": {
       const ws = A.ws, {error} = await sb.from("members").delete().eq("workspace_id", ws).eq("user_id", A.user.id);
-      A.confirm = null; if (error) { toast("Couldn't leave: " + error.message); render(); return; }
+      S.setConfirm = null; if (error) { toast("Couldn't leave: " + error.message); render(); return; }
       lsDel("cedi-cache-" + ws); if (A.channel) { sb.removeChannel(A.channel); A.channel = null; }
       A.ws = null; toast("You left the business"); routeAfterAuth(); break;
     }
     case "switch-ws": S.modal = null; location.hash = "dashboard"; openWorkspace(el.dataset.id); toast("Switched business"); break;
-    case "sign-out": signOut(); break;
+    case "sign-out": signOut("local"); break;
+    case "ask-signout-all": S.setConfirm = {type:"signout-all"}; render(); break;
+    case "sign-out-all": signOut("global"); break;
+    case "ask-delete-ws": S.setConfirm = {type:"delete-ws"}; render(); setTimeout(() => $("#delWsName")?.focus(), 30); break;
+    case "do-delete-ws": {
+      const cur = A.workspaces.find(w => w.id === A.ws) || {};
+      if (($("#delWsName").value || "").trim() !== (cur.name || "").trim()) { toast("Type the business name exactly to confirm."); return; }
+      const ws = A.ws, {error} = await sb.from("workspaces").delete().eq("id", ws);
+      if (error) { toast(isNetErr(error) ? "Connect to the internet to delete a business." : error.message); return; }
+      S.setConfirm = null; lsDel("cedi-cache-" + ws); outbox = outbox.filter(o => o.ws !== ws); saveOutbox();
+      if (A.channel) { sb.removeChannel(A.channel); A.channel = null; }
+      A.ws = null; toast(cur.name + " was deleted"); location.hash = "dashboard"; routeAfterAuth(); break;
+    }
+    case "ask-delete-account": S.setConfirm = {type:"delete-account"}; render(); setTimeout(() => $("#delAcc")?.focus(), 30); break;
+    case "do-delete-account": {
+      if (($("#delAcc").value || "").trim().toUpperCase() !== "DELETE") { toast("Type DELETE to confirm."); return; }
+      const {error} = await sb.rpc("delete_my_account");
+      if (error) { S.setMsg = {type:"err", text:isNetErr(error) ? "Connect to the internet to delete your account." : error.message}; S.setConfirm = null; render(); return; }
+      lsDel("cedi-myprof-" + A.user.id); S.setConfirm = null; await signOut("local"); toast("Your account was deleted"); break;
+    }
+    case "ask-erase": S.setConfirm = {type:"erase"}; render(); setTimeout(() => $("#eraseTxt")?.focus(), 30); break;
+    case "do-erase": {
+      if (($("#eraseTxt").value || "").trim().toUpperCase() !== "ERASE") { toast("Type ERASE to confirm."); return; }
+      lsDel(LS_KEY); lsDel(LOCAL_PROFILE); S.records = {}; EXAMPLES = null; S.setConfirm = null; location.hash = "dashboard"; render(); toast("This device was erased"); break;
+    }
+    case "refresh-data": lsDel(cacheKey()); await refetch(); await loadTeam(); toast("Reloaded from your account"); break;
+    case "remove-avatar": {
+      const p = {...myProfile(), ...readProfileForm(), avatar:""}; delete p.email;
+      const err = await saveProfile(p); toast(err ? "Couldn't remove photo: " + err.message : "Photo removed"); render(); break;
+    }
   }
 }
 
@@ -1438,6 +1632,12 @@ document.addEventListener("change", async e => {
     const {error} = await sb.from("members").update({role:t.value}).eq("workspace_id", A.ws).eq("user_id", t.dataset.roleFor);
     toast(error ? "Couldn't change role: " + error.message : "Role updated"); loadTeam();
   }
+  else if (t.id === "avatarInput") {
+    try {
+      const url = await readAvatar(t.files[0]), p = {...myProfile(), ...readProfileForm(), avatar:url}; delete p.email;
+      const err = await saveProfile(p); toast(err ? (isNetErr(err) ? "Connect to the internet to change your photo." : err.message) : "Photo updated"); render();
+    } catch (err) { toast(err.message); }
+  }
   else if (t.id === "formLogoInput") {
     syncInvoiceDraft();
     try { const url = await readLogo(t.files[0]); saveSettings({logo:url}); render(); toast("Logo added"); }
@@ -1462,17 +1662,26 @@ function rerenderKeepFocus(id) {
 document.addEventListener("submit", async e => {
   e.preventDefault(); const f = e.target;
   if (f.closest && f.closest("#gate")) { gateSubmit(f.id); return; }
-  if (f.id === "nameForm") {
-    const full_name = $("#acName").value.trim();
-    const {data, error} = await sb.auth.updateUser({data:{full_name}});
+  if (f.id === "profileForm") {
+    const p = {...myProfile(), ...readProfileForm()}; delete p.email;
+    const err = await saveProfile(p);
+    if (err) { toast(isNetErr(err) ? "Connect to the internet to save your profile." : err.message); return; }
+    toast("Profile saved"); render(); return;
+  }
+  if (f.id === "emailForm") {
+    const email = $("#acEmail").value.trim(); if (!email) return;
+    const {data, error} = await sb.auth.updateUser({email}, {emailRedirectTo:redirectURL()});
     if (error) { toast(friendlyAuthError(error)); return; }
-    A.user = data.user; await sb.rpc("set_display_name", {p_name:full_name});
-    toast("Name saved"); loadTeam(); return;
+    if (data && data.user) A.user = data.user;
+    S.setMsg = {type:"ok", text:"Check " + email + " for a confirmation link. Your sign-in email changes once you confirm."}; render(); return;
   }
   if (f.id === "passForm") {
-    const p = $("#acPass").value; if (p.length < 8) { toast("Use at least 8 characters."); return; }
+    const p = $("#acPass").value, p2 = $("#acPass2").value;
+    if (p.length < 8) { toast("Use at least 8 characters."); return; }
+    if (p !== p2) { toast("The two passwords don't match."); return; }
     const {error} = await sb.auth.updateUser({password:p});
-    toast(error ? friendlyAuthError(error) : "Password updated"); if (!error) $("#acPass").value = ""; return;
+    if (error) { toast(friendlyAuthError(error)); return; }
+    S.setMsg = {type:"ok", text:"Password updated."}; render(); return;
   }
   if (f.id === "newWsForm") {
     const name = $("#newWsName").value.trim(); if (!name) return;
@@ -1488,8 +1697,13 @@ document.addEventListener("submit", async e => {
     if (!canEditBiz()) return;
     const v = readForm(f, {});
     saveSettings({business:{name:v.name, email:v.email, phone:v.phone, address:v.address, momo:v.momo, bank:v.bank}, currency:v.currency, taxRate:num(v.taxRate),
+      terms:Math.max(0, Math.min(365, Math.round(num(v.terms)))), invoiceNotes:v.invoiceNotes,
       prefix:(v.prefix || "INV").replace(/[^A-Za-z0-9]/g, "").toUpperCase() || "INV"});
-    render(); toast("Business details saved");
+    if (CLOUD && v.name) {
+      const w = A.workspaces.find(x => x.id === A.ws);
+      if (w && w.name !== v.name) { const {error} = await sb.from("workspaces").update({name:v.name}).eq("id", A.ws); if (!error) { w.name = v.name; lsSet("cedi-wslist-" + A.user.id, JSON.stringify(A.workspaces)); } }
+    }
+    render(); toast("Business settings saved");
   } else if (f.id === "invForm") act("save-invoice");
   else if (f.id === "rctForm") act("save-receipt");
   else if (f.id === "expForm") act("save-expense");
@@ -1584,6 +1798,7 @@ async function routeAfterAuth() {
     A.g.err = "That invite link has expired or was already used. Ask for a new one.";
   }
   await loadWorkspaces();
+  sb.rpc("sync_my_email").then(() => {}, () => {});
   if (!A.workspaces.length) { A.phase = "create"; renderGate(); return; }
   const last = lsGet("cedi-ws-" + A.user.id);
   openWorkspace(A.workspaces.some(w => w.id === last) ? last : A.workspaces[0].id);
@@ -1606,7 +1821,7 @@ function initAuth() {
         if (A.user && A.user.id === session.user.id && A.phase !== "checking" && A.phase !== "signed-out") { A.user = session.user; return; }
         A.user = session.user; A.g = {...A.g, busy:false, err:"", ok:"", mode:"password"}; routeAfterAuth(); return;
       }
-      if (event === "USER_UPDATED" && session) { A.user = session.user; return; }
+      if (event === "USER_UPDATED" && session) { A.user = session.user; sb.rpc("sync_my_email").then(() => {}, () => {}); if (S.view === "settings") render({skipModalForms:true}); return; }
       if (event === "INITIAL_SESSION" && !session) { cleanAuthParams(); A.phase = "signed-out"; renderGate(); }
     }, 0);
   });
@@ -1675,24 +1890,32 @@ async function gateAction(a, el) {
   }
   if (a === "g-decline") { lsDel("cedi-pending-invite"); A.pendingInvite = null; A.inviteInfo = null; return routeAfterAuth(); }
 }
-async function signOut() {
+async function signOut(scope) {
   if (A.channel) { sb.removeChannel(A.channel); A.channel = null; }
   try { Object.keys(localStorage).filter(k => /^cedi-(cache|wslist|outbox)/.test(k)).forEach(k => localStorage.removeItem(k)); } catch {}
   outbox = []; S.records = {}; A.ws = null; A.role = null; A.members = []; A.invites = []; A.workspaces = [];
   A.g = {tab:"signin", mode:"password", busy:false, ok:"", err:"", otpEmail:"", email:A.user?.email || ""};
-  await sb.auth.signOut({scope:"local"}).catch(() => {});
+  await sb.auth.signOut({scope:scope === "global" ? "global" : "local"}).catch(() => {});
+  if (A.user) lsDel("cedi-myprof-" + A.user.id);
+  A.profiles = {}; S.setConfirm = null; S.setMsg = null;
   A.user = null; A.phase = "signed-out"; renderGate();
 }
 
 /* ---------- routing & boot ---------- */
-function route() { const h = location.hash.slice(1); S.view = VIEWS.some(v => v[0] === h) ? h : "dashboard"; S.modal = S.modal && S.modal.type === "invoiceView" ? S.modal : null; render(); window.scrollTo(0, 0); }
+function parseHash() {
+  let h = location.hash.slice(1);
+  if (h === "business") h = "settings-business";
+  if (h.startsWith("settings")) { const t = h.slice(9); if (t) S.setTab = t; h = "settings"; }
+  S.view = VIEWS.some(v => v[0] === h) ? h : "dashboard";
+}
+function route() { parseHash(); S.setConfirm = null; S.setMsg = null; S.pendingImport = null; S.modal = S.modal && S.modal.type === "invoiceView" ? S.modal : null; render(); window.scrollTo(0, 0); }
 window.addEventListener("hashchange", route);
 (() => {   // remember an invite link, then tidy the address bar
   const u = new URL(location.href), tok = u.searchParams.get("invite");
   if (tok && /^[a-f0-9]{32,80}$/i.test(tok)) lsSet("cedi-pending-invite", tok);
   if (tok) { u.searchParams.delete("invite"); history.replaceState(null, "", u.pathname + (u.searchParams.toString() ? "?" + u.searchParams : "") + u.hash); }
 })();
-S.view = (VIEWS.find(v => v[0] === location.hash.slice(1)) || ["dashboard"])[0];
+parseHash();
 if (CLOUD) { renderGate(); initAuth(); }
 else { load(); render(); }
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
