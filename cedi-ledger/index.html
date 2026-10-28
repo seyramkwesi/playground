@@ -219,6 +219,11 @@ input:focus,select:focus,textarea:focus{outline:3px solid var(--pink-soft);borde
 .paper .stamp.rct{top:120px}
 .paper .lbl{color:var(--paper-muted)}
 .paper .table-x{overflow-x:auto}
+.paper .pay-box{border:1px solid var(--paper-line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;background:#fcfbfa}
+.paper .pay-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 24px}
+.paper .pay-title{font-weight:700;margin-bottom:4px}
+.paper .pay-kv{grid-template-columns:auto minmax(0,1fr);gap:3px 14px}
+.paper .pay-kv span:nth-child(even){overflow-wrap:anywhere}
 
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:14px;font-weight:700;font-size:14px;z-index:80;box-shadow:var(--shadow);max-width:calc(100% - 32px);text-align:center}
 
@@ -623,7 +628,9 @@ function buildExamples() {
     });
   }
   ex.settings = {...DEFAULT_SETTINGS, example:true, business:{name:"Studio Example Ltd.", email:"accounts@studio.example", phone:"+233 30 000 0000",
-    address:"12 Ring Road, Accra", momo:"024 000 0000 (Studio Example)", bank:"GCB Bank — 1234567890"},
+    address:"12 Ring Road, Accra", momo:"", bank:""},
+    pay:{momo:{network:"MTN MoMo", name:"Studio Example Ltd.", number:"024 000 0000"},
+         bank:{accountName:"Studio Example Ltd.", accountNumber:"1234567890123", bankName:"GCB Bank", branch:"Ring Road Central", address:"Ring Road Central, Accra", country:"Ghana", swift:"GHCBGHAC"}},
     budgets:{"Rent & utilities":3200,"Equipment":1000,"Transport":1200,"Software":1100,"Supplies":550,"Meals":600,"Marketing":500,"Salaries & fees":2000,"Other":300}};
   return ex;
 }
@@ -647,6 +654,26 @@ function invoiceTotals(inv) {
   const sub = (inv.items || []).reduce((s, it) => s + num(it.qty) * num(it.price), 0);
   const disc = Math.min(num(inv.discount), sub), tax = (sub - disc) * num(inv.taxRate) / 100;
   return {sub:round2(sub), disc:round2(disc), tax:round2(tax), total:round2(sub - disc + tax)};
+}
+/* Payment details: structured Mobile Money + bank, with fallback to older one-line text */
+const MOMO_NETWORKS = ["MTN MoMo","Telecel Cash","AirtelTigo Money","Other"];
+const BANK_FIELDS = [["accountName","Name on account"],["accountNumber","Account number"],["bankName","Bank name"],["branch","Branch"],["address","Bank address"],["country","Country"],["swift","SWIFT / BIC code"]];
+function payDetails(st) {
+  st = st || settings();
+  const p = st.pay || {}, m = p.momo || {}, bk = p.bank || {}, b = st.business || {};
+  const momo = {network:m.network || "", name:m.name || "", number:m.number || ""};
+  const bank = {}; BANK_FIELDS.forEach(([k]) => bank[k] = bk[k] || "");
+  const hasMomo = !!(momo.number || momo.name), hasBank = !!(bank.accountNumber || bank.bankName || bank.accountName);
+  return {momo, bank, hasMomo, hasBank, legacyMomo:!st.pay && b.momo ? b.momo : "", legacyBank:!st.pay && b.bank ? b.bank : ""};
+}
+// Rows to print, in order, skipping anything left blank.
+function momoRows(pd) {
+  if (pd.hasMomo) return [["Network", pd.momo.network], ["Account name", pd.momo.name], ["Number", pd.momo.number]].filter(r => r[1]);
+  return pd.legacyMomo ? [["Details", pd.legacyMomo]] : [];
+}
+function bankRows(pd) {
+  if (pd.hasBank) return BANK_FIELDS.map(([k, l]) => [l, pd.bank[k]]).filter(r => r[1]);
+  return pd.legacyBank ? [["Details", pd.legacyBank]] : [];
 }
 function invStatus(inv) {
   if (inv.status === "paid") return "paid";
@@ -736,6 +763,7 @@ const I = {
   settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
   user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
   team:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5c2.6 0 4.6 1.6 5.5 4.5"/></svg>',
+  wallet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h13v4"/><path d="M3 7v11a2 2 0 002 2h15V9H5a2 2 0 01-2-2z"/><circle cx="16" cy="14.5" r="1.2" fill="currentColor"/></svg>',
   layers:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>',
   shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4" stroke-linecap="round"/></svg>',
   data:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>',
@@ -1001,14 +1029,14 @@ const initials = n => (n || "?").split(/[\s@._-]+/).filter(Boolean).slice(0, 2).
 const roleLabel = r => ({owner:"Owner", admin:"Admin", member:"Member"}[r] || r);
 const inviteURL = tok => redirectURL() + "?invite=" + tok;
 function setTabs() {
-  return [["profile","Profile","user"],["business","Business","business"]]
+  return [["profile","Profile","user"],["business","Business","business"],["payments","Payment details","wallet"]]
     .concat(CLOUD ? [["team","Team","team"],["businesses","Businesses","layers"],["security","Security","shield"]] : [])
     .concat([["data","Data & backup","data"]]);
 }
 function vSettings() {
   const tabs = setTabs();
   if (!tabs.some(t => t[0] === S.setTab)) S.setTab = "profile";
-  const body = {profile:sProfile, business:sBusiness, team:sTeam, businesses:sBusinesses, security:sSecurity, data:sData}[S.setTab]();
+  const body = {profile:sProfile, business:sBusiness, payments:sPayments, team:sTeam, businesses:sBusinesses, security:sSecurity, data:sData}[S.setTab]();
   return `
   <div class="head"><div><h1>Settings</h1><p>${CLOUD ? "Your profile, your business, your team and your account." : "Your profile, your business details and your data."}</p></div></div>
   <div class="settings">
@@ -1049,8 +1077,7 @@ function sBusiness() {
       <div class="field"><label for="bzEmail">Email</label><input type="email" id="bzEmail" name="email" value="${esc(b.email)}"></div>
       <div class="field"><label for="bzPhone">Phone</label><input type="tel" id="bzPhone" name="phone" value="${esc(b.phone)}"></div>
       <div class="field full"><label for="bzAddr">Address</label><textarea id="bzAddr" name="address" rows="2">${esc(b.address)}</textarea></div>
-      <div class="field"><label for="bzMomo">Mobile Money details</label><input type="text" id="bzMomo" name="momo" value="${esc(b.momo)}" placeholder="Number and account name"></div>
-      <div class="field"><label for="bzBank">Bank details</label><input type="text" id="bzBank" name="bank" value="${esc(b.bank)}" placeholder="Bank, account number"></div>
+      <div class="field full"><span class="muted">Mobile Money and bank details for invoices are under <a class="sub" href="#settings-payments">Payment details</a>.</span></div>
   </div></section>
   <section class="panel"><div class="panel-head"><h2>Invoice defaults</h2><span class="sub">Used for every new invoice</span></div><div class="form-grid">
       <div class="field"><label for="bzCur">Currency</label><select id="bzCur" name="currency">${CURRENCIES.map(c => `<option ${st.currency === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
@@ -1062,6 +1089,44 @@ function sBusiness() {
   </div></section></fieldset></form>`;
 }
 
+const COUNTRIES = ["Ghana","Nigeria","Côte d'Ivoire","Togo","Burkina Faso","Senegal","Kenya","South Africa","United Kingdom","United States"];
+function sPayments() {
+  const pd = payDetails(), ed = canEditBiz(), m = pd.momo, bk = pd.bank;
+  // Older one-line details are offered as a starting point until the new fields are saved.
+  const mNum = m.number || (pd.legacyMomo && !pd.hasMomo ? pd.legacyMomo : ""), bName = bk.bankName || (pd.legacyBank && !pd.hasBank ? pd.legacyBank : "");
+  const preview = (rows) => rows.length ? `<div class="kv" style="margin-top:14px">${rows.map(([l, v]) => `<span>${esc(l)}</span><b>${esc(v)}</b>`).join("")}</div>` : "";
+  return `${CLOUD && !ed ? `<div class="banner lav"><span>Owners and admins manage payment details.</span></div>` : ""}
+  <p class="muted" style="margin:0">These appear in a "How to pay" box on every unpaid invoice, its PDF and the text you share. Leave a form empty to leave that method off.</p>
+  <section class="panel"><div class="panel-head"><h2>Mobile Money</h2><span class="sub">${pd.hasMomo ? "Shown on invoices" : "Not set"}</span></div>
+    <form id="momoForm"><fieldset class="form-grid" ${ed ? "" : "disabled"}>
+      <div class="field"><label for="mmNetwork">Network</label><select id="mmNetwork" name="network"><option value="">Choose…</option>${MOMO_NETWORKS.map(n => `<option ${m.network === n ? "selected" : ""}>${n}</option>`).join("")}</select></div>
+      <div class="field"><label for="mmNumber">Mobile Money number</label><input type="tel" id="mmNumber" name="number" maxlength="40" inputmode="tel" value="${esc(mNum)}" placeholder="e.g. 024 123 4567"></div>
+      <div class="field full"><label for="mmName">Account name</label><input type="text" id="mmName" name="name" maxlength="80" value="${esc(m.name)}" placeholder="Name registered on the wallet"></div>
+      ${ed ? `<div class="field full"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit">Save Mobile Money</button>${pd.hasMomo ? `<button class="btn danger" type="button" data-action="clear-momo">Remove</button>` : ""}</div></div>` : ""}
+    </fieldset></form></section>
+  <section class="panel"><div class="panel-head"><h2>Bank account</h2><span class="sub">${pd.hasBank ? "Shown on invoices" : "Not set"}</span></div>
+    <form id="bankForm"><fieldset class="form-grid" ${ed ? "" : "disabled"}>
+      <div class="field full"><label for="bkAccName">Name on account</label><input type="text" id="bkAccName" name="accountName" maxlength="100" value="${esc(bk.accountName)}" placeholder="e.g. Seyram Water Labs Ltd."></div>
+      <div class="field"><label for="bkAccNum">Account number</label><input type="text" id="bkAccNum" name="accountNumber" maxlength="40" inputmode="numeric" autocomplete="off" value="${esc(bk.accountNumber)}"></div>
+      <div class="field"><label for="bkBank">Bank name</label><input type="text" id="bkBank" name="bankName" maxlength="80" value="${esc(bName)}" placeholder="e.g. GCB Bank"></div>
+      <div class="field"><label for="bkBranch">Bank branch</label><input type="text" id="bkBranch" name="branch" maxlength="80" value="${esc(bk.branch)}" placeholder="e.g. Ring Road Central"></div>
+      <div class="field"><label for="bkCountry">Country</label><input type="text" id="bkCountry" name="country" maxlength="60" list="countryList" value="${esc(bk.country || (pd.hasBank ? "" : "Ghana"))}">
+        <datalist id="countryList">${COUNTRIES.map(c => `<option value="${esc(c)}">`).join("")}</datalist></div>
+      <div class="field full"><label for="bkAddress">Bank address</label><textarea id="bkAddress" name="address" rows="2" maxlength="200">${esc(bk.address)}</textarea></div>
+      <div class="field"><label for="bkSwift">SWIFT / BIC code</label><input type="text" id="bkSwift" name="swift" maxlength="11" autocapitalize="characters" autocomplete="off" pattern="[A-Za-z0-9]{8}([A-Za-z0-9]{3})?" title="8 or 11 letters and numbers, e.g. GHCBGHAC" value="${esc(bk.swift)}" placeholder="8 or 11 characters"><span class="muted">Needed for payments from outside the country.</span></div>
+      ${ed ? `<div class="field full"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit">Save bank details</button>${pd.hasBank ? `<button class="btn danger" type="button" data-action="clear-bank">Remove</button>` : ""}</div></div>` : ""}
+    </fieldset></form></section>`;
+}
+function savePay(patch) {
+  // Build on the saved settings only, never on the sample data shown before the first record.
+  const real = S.records.settings || DEFAULT_SETTINGS, st = {...DEFAULT_SETTINGS, ...real, business:{...DEFAULT_SETTINGS.business, ...(real.business || {})}}, cur = real.pay || {};
+  const pay = {momo:{...(cur.momo || {})}, bank:{...(cur.bank || {})}, ...patch};
+  const pd = payDetails({...st, pay});
+  // Keep the old one-line fields in step so older copies of the app still show something.
+  const momoLine = pd.hasMomo ? [pd.momo.number, pd.momo.name && "(" + pd.momo.name + ")", pd.momo.network && "· " + pd.momo.network].filter(Boolean).join(" ") : "";
+  const bankLine = pd.hasBank ? [pd.bank.bankName, pd.bank.accountNumber, pd.bank.accountName && "(" + pd.bank.accountName + ")"].filter(Boolean).join(" — ") : "";
+  saveSettings({pay, business:{...st.business, momo:momoLine, bank:bankLine}});
+}
 function sTeam() {
   const mgr = isManager(), me = A.user.id, ownerMe = A.role === "owner", c = S.setConfirm;
   const rows = A.members.map((m, i) => {
@@ -1167,6 +1232,14 @@ function bizBlock(st) {
   return `<div>${st.logo ? `<img class="p-logo" src="${st.logo}" alt="">` : ""}<b style="font-size:16px">${esc(b.name || "Your business")}</b>
     <div class="p-muted" style="white-space:pre-line">${esc([b.address, b.phone, b.email].filter(Boolean).join("\n"))}</div></div>`;
 }
+function payBlock(inv) {
+  const pd = payDetails(), mr = momoRows(pd), br = bankRows(pd);
+  if (!mr.length && !br.length) return "";
+  const col = (title, rows) => `<div class="pay-col"><div class="pay-title">${title}</div><div class="p-meta pay-kv">${rows.map(([l, v]) => `<span>${esc(l)}</span><span>${esc(v)}</span>`).join("")}</div></div>`;
+  return `<div class="p-sec pay-box"><div class="lbl">How to pay</div>
+    <div class="pay-grid">${mr.length ? col("Mobile Money", mr) : ""}${br.length ? col("Bank transfer", br) : ""}</div>
+    <div class="p-muted" style="font-size:13px">Please use <b>${esc(inv.number)}</b> as your payment reference.</div></div>`;
+}
 function invoiceDoc(inv) {
   const st = settings(), t = invoiceTotals(inv), s = invStatus(inv), b = st.business;
   return `<div class="paper"><div class="band"></div>
@@ -1180,7 +1253,7 @@ function invoiceDoc(inv) {
     </tbody></table>
     <div class="totals"><span>Subtotal</span><span class="num">${money(t.sub)}</span>${t.disc ? `<span>Discount</span><span class="num">−${money(t.disc)}</span>` : ""}
       ${num(inv.taxRate) ? `<span>Tax (${num(inv.taxRate)}%)</span><span class="num">${money(t.tax)}</span>` : ""}<span class="grand">${s === "paid" ? "Total paid" : "Total due"}</span><span class="num grand">${money(t.total)}</span></div></div>
-    ${(b.momo || b.bank) && s !== "paid" ? `<div class="p-sec"><div class="lbl">How to pay</div>${b.momo ? `<div>Mobile Money: ${esc(b.momo)}</div>` : ""}${b.bank ? `<div>Bank: ${esc(b.bank)}</div>` : ""}<div class="p-muted">Please use ${esc(inv.number)} as the reference.</div></div>` : ""}
+    ${s !== "paid" ? payBlock(inv) : ""}
     ${inv.notes ? `<div class="p-sec p-muted">${esc(inv.notes)}</div>` : ""}</div>`;
 }
 function receiptDoc(r) {
@@ -1198,7 +1271,13 @@ const tidy = lines => lines.filter((l, i, a) => l !== "" || (i > 0 && a[i - 1] !
 function invoiceShareText(inv) {
   const st = settings(), t = invoiceTotals(inv), b = st.business;
   return tidy([`Invoice ${inv.number} from ${b.name || "us"}`, `To: ${inv.client?.name || ""}`, "", ...(inv.items || []).map(it => `• ${it.desc} — ${num(it.qty)} × ${moneyPlain(num(it.price))}`), "",
-    `Total due: ${moneyPlain(t.total)}`, `Due date: ${fmtDate(inv.dueDate)}`, b.momo ? `Mobile Money: ${b.momo}` : "", b.bank ? `Bank: ${b.bank}` : "", `Reference: ${inv.number}`, "", "Thank you!"]);
+    `Total due: ${moneyPlain(t.total)}`, `Due date: ${fmtDate(inv.dueDate)}`,
+    ...(() => { const pd = payDetails(), mr = momoRows(pd), br = bankRows(pd), out = [];
+      if (mr.length || br.length) out.push("", "HOW TO PAY");
+      if (mr.length) out.push("Mobile Money", ...mr.map(([l, v]) => `  ${l}: ${v}`));
+      if (br.length) out.push(mr.length ? "" : null, "Bank transfer", ...br.map(([l, v]) => `  ${l}: ${v}`));
+      return out.filter(x => x !== null); })(),
+    `Reference: ${inv.number}`, "", "Thank you!"]);
 }
 function receiptShareText(r) {
   const inv = r.invoiceId && data()[r.invoiceId];
@@ -1279,11 +1358,28 @@ async function pdfDoc(kind, rec) {
     y += 50;
 
     // payment details + notes
-    if ((b.momo || b.bank) && !paid) {
-      label("Payment details", M, y); y += 16; font("normal", 10);
-      if (b.momo) { txt("Mobile Money: " + b.momo, M, y); y += 14; }
-      if (b.bank) { txt("Bank: " + b.bank, M, y); y += 14; }
-      font("normal", 9, MUTED); txt("Please use " + rec.number + " as your payment reference.", M, y); y += 24;
+    const pd = payDetails(), mr = momoRows(pd), br = bankRows(pd);
+    if ((mr.length || br.length) && !paid) {
+      // Measure first so the box never splits across pages.
+      const cols = [mr.length && ["Mobile Money", mr], br.length && ["Bank transfer", br]].filter(Boolean);
+      const colW = cols.length === 2 ? (R - M - 44) / 2 : R - M - 24, lw = 82, vw = colW - lw - 6;
+      font("normal", 9.5);
+      const colH = cols.map(([, rows]) => 16 + rows.reduce((h, [, v]) => h + doc.splitTextToSize(String(v), vw).length * 12 + 4, 0));
+      const boxH = 26 + Math.max(...colH) + 26;
+      if (y + boxH > H - 70) { doc.addPage(); y = 60; }
+      doc.setDrawColor(...LINE); doc.setFillColor(252, 251, 250); doc.roundedRect(M, y, R - M, boxH, 6, 6, "FD");
+      label("How to pay", M + 12, y + 18);
+      cols.forEach(([title, rows], ci) => {
+        const x = M + 12 + ci * (colW + 20); let yy = y + 38;
+        font("bold", 10.5); txt(title, x, yy); yy += 16;
+        rows.forEach(([l, v]) => {
+          font("normal", 8.5, MUTED); txt(l, x, yy);
+          font("normal", 9.5); const ls = doc.splitTextToSize(String(v), vw); txt(ls, x + lw, yy);
+          yy += ls.length * 12 + 4;
+        });
+      });
+      font("normal", 9, MUTED); txt("Please use " + rec.number + " as your payment reference.", M + 12, y + boxH - 12);
+      y += boxH + 22;
     }
     if (paid) y = Math.max(y, totalsTop + 86);
     if (rec.notes) { label("Notes", M, y); y += 15; font("normal", 9.5, MUTED); txt(doc.splitTextToSize(rec.notes, R - M), M, y); }
@@ -1344,7 +1440,8 @@ function mInvoiceForm(m) {
           <input type="text" id="fBizName" value="${esc(bname)}" placeholder="Business name (shown on the invoice)" aria-label="Business name">
           <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn sm olive file-btn">${st.logo ? "Change logo" : "Add logo"}<input type="file" id="formLogoInput" accept="image/png,image/jpeg,image/webp"></label>
           ${st.logo ? `<button type="button" class="btn sm danger" data-action="remove-logo-form">Remove logo</button>` : ""}
-          <a class="btn sm ghost" style="white-space:normal;text-align:left;padding-left:2px" href="#settings-business" data-action="close">Address, phone &amp; payment details</a></div></div></div></div>`}
+          <a class="btn sm ghost" style="white-space:normal;text-align:left;padding-left:2px" href="#settings-business" data-action="close">Address &amp; phone</a>
+          <a class="btn sm ghost" style="white-space:normal;text-align:left;padding-left:2px" href="#settings-payments" data-action="close">Payment details</a></div></div></div></div>`}
     <div class="form-grid">
       <div class="field"><label for="fNum">Invoice number</label><input type="text" id="fNum" name="number" value="${esc(d.number)}" required></div>
       <div class="field"><label for="fStatus">Status</label><select id="fStatus" name="status">${["draft","sent","paid"].map(s => `<option value="${s}" ${d.status === s ? "selected" : ""}>${statusLabel(s)}</option>`).join("")}</select></div>
@@ -1506,6 +1603,8 @@ async function act(a, el) {
       remove(id); S.modal = null; render(); toast("Deleted"); break;
     }
     case "remove-logo": saveSettings({logo:""}); render(); toast("Logo removed"); break;
+    case "clear-momo": if (canEditBiz()) { savePay({momo:{}}); render(); toast("Mobile Money removed from invoices"); } break;
+    case "clear-bank": if (canEditBiz()) { savePay({bank:{}}); render(); toast("Bank details removed from invoices"); } break;
     case "remove-logo-form": syncInvoiceDraft(); saveSettings({logo:""}); renderModal(); toast("Logo removed"); break;
     case "export-csv": {
       const rows = all("expense").filter(e => !S.expMonth || monthKey(e.date) === S.expMonth).sort((a, b) => a.date.localeCompare(b.date));
@@ -1689,6 +1788,14 @@ document.addEventListener("submit", async e => {
     if (error) { toast(isNetErr(error) ? "Connect to the internet to create a business." : error.message); return; }
     await loadWorkspaces(); location.hash = "dashboard"; openWorkspace(ws); toast(name + " is ready"); return;
   }
+  if (f.id === "momoForm" || f.id === "bankForm") {
+    if (!canEditBiz()) return;
+    if (!f.reportValidity()) return;
+    const v = {}; f.querySelectorAll("[name]").forEach(el => v[el.name] = el.value.trim());
+    if (f.id === "momoForm") { savePay({momo:v}); toast(v.number ? "Mobile Money details saved" : "Saved"); }
+    else { v.swift = (v.swift || "").toUpperCase(); savePay({bank:v}); toast(v.accountNumber || v.bankName ? "Bank details saved" : "Saved"); }
+    render(); return;
+  }
   if (f.id === "budgetForm") {
     if (!canEditBiz()) return;
     const budgets = {}; f.querySelectorAll("input").forEach(i => { if (num(i.value) > 0) budgets[i.name] = num(i.value); });
@@ -1696,7 +1803,7 @@ document.addEventListener("submit", async e => {
   } else if (f.id === "bizForm") {
     if (!canEditBiz()) return;
     const v = readForm(f, {});
-    saveSettings({business:{name:v.name, email:v.email, phone:v.phone, address:v.address, momo:v.momo, bank:v.bank}, currency:v.currency, taxRate:num(v.taxRate),
+    saveSettings({business:{...((S.records.settings || {}).business || {}), name:v.name, email:v.email, phone:v.phone, address:v.address}, currency:v.currency, taxRate:num(v.taxRate),
       terms:Math.max(0, Math.min(365, Math.round(num(v.terms)))), invoiceNotes:v.invoiceNotes,
       prefix:(v.prefix || "INV").replace(/[^A-Za-z0-9]/g, "").toUpperCase() || "INV"});
     if (CLOUD && v.name) {
