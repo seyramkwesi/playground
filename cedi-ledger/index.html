@@ -15,6 +15,8 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <script src="jspdf.umd.min.js"></script>
+<script src="config.js"></script>
+<script src="supabase.min.js"></script>
 <style>
 /* Layout: clean white ledger with pastel accents — left rail on desktop, bottom tab bar on phones; San Francisco throughout. */
 :root{
@@ -163,7 +165,7 @@ td .muted,.muted{color:var(--muted);font-size:13px}
 .chip[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
 .field{display:flex;flex-direction:column;gap:5px;min-width:0}
 .field label,.lbl{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-input[type=text],input[type=number],input[type=date],input[type=email],input[type=tel],input[type=search],input[type=month],select,textarea{
+input[type=text],input[type=number],input[type=date],input[type=email],input[type=tel],input[type=search],input[type=month],input[type=password],select,textarea{
   width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 12px;min-width:0;font-size:16px;min-height:42px}
 textarea{resize:vertical;min-height:70px}
 input:focus,select:focus,textarea:focus{outline:3px solid var(--pink-soft);border-color:var(--pink-deep)}
@@ -248,11 +250,59 @@ input:focus,select:focus,textarea:focus{outline:3px solid var(--pink-soft);borde
   .donut-legend{width:100%}
   .head-actions .hide-sm{display:none}
 }
+/* Sign-in, team and account */
+.gate{min-height:100%;display:flex;align-items:flex-start;justify-content:center;padding-block:40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:linear-gradient(180deg,var(--pink-soft),var(--bg) 360px)}
+.gate-card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:28px 24px;display:flex;flex-direction:column;gap:16px}
+.gate-brand{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.gate-brand .brand-mark{width:56px;height:56px;border-radius:16px}
+.gate-brand .brand-mark span{width:34px;height:34px;font-size:19px}
+.gate h1{font-size:26px}
+.gate p{margin:0;color:var(--muted)}
+.gate form{display:flex;flex-direction:column;gap:12px}
+.btn.block{width:100%}
+.btn.google{gap:10px}
+.btn.google svg{width:18px;height:18px}
+.divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.linkbtn{background:none;border:0;padding:0;color:var(--pink-deep);font-weight:700;cursor:pointer;font-size:14px;text-align:left}
+.gate-links{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}
+.msg{padding:10px 12px;border-radius:12px;font-size:14px}
+.msg.ok{background:var(--olive-soft)}
+.msg.err{background:var(--pink-soft);color:var(--bad)}
+.spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--pink-soft);border-top-color:var(--pink-deep);margin:18px auto}
+@media (prefers-reduced-motion:no-preference){.spinner{animation:spin .8s linear infinite}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.code-input{font-size:24px!important;letter-spacing:.35em;text-align:center}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+.check input{width:20px;height:20px;margin-top:1px;accent-color:var(--pink-deep)}
+.member{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.member:first-child{border-top:0}
+.member .t{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.member .s{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.member-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.member-actions select{width:auto;min-height:34px;padding:4px 8px;font-size:13px}
+.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#2c2a27;font-size:15px}
+.pill.role-owner{background:var(--pink)}
+.pill.role-admin{background:var(--lav)}
+.pill.role-member{background:var(--sunken);color:var(--muted)}
+.invite-link{display:flex;flex-direction:column;gap:10px;padding:12px 14px;border-radius:14px;background:var(--olive-soft)}
+.invite-link code{font-family:var(--f-body);font-size:13px;word-break:break-all;user-select:all}
+.ws-list{display:flex;flex-direction:column;gap:8px}
+.ws-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;border:1px solid var(--line)}
+.ws-row.current{background:var(--pink-soft);border-color:var(--pink)}
+.row-inline{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.row-inline .field{flex:1 1 200px}
+fieldset{border:0;padding:0;margin:0;min-width:0}
+.sync{display:inline-flex;align-items:center;gap:6px}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--olive-deep)}
+.sync.off i{background:var(--warn)}
+.byline{font-size:12px;color:var(--muted)}
 @media (prefers-reduced-motion:no-preference){.fill{transition:width .5s ease}}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="gate" id="gate" hidden></div>
+<div class="app" id="app">
   <aside class="rail" aria-label="Main">
     <div class="brand"><div class="brand-mark" id="brandMark"><span>₵</span></div><div><b>Cedi Ledger</b><small id="bizName">Your business</small></div></div>
     <nav class="nav" id="nav"></nav>
@@ -290,17 +340,159 @@ const CURRENCIES = ["GHS","NGN","KES","ZAR","USD","EUR","GBP","XOF"];
 const cssVar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
 /* ---------- state & storage ---------- */
-const LS_KEY = "cedi-ledger-v1";
+const LS_KEY = "cedi-ledger-v1";               // single-device mode (and data from before accounts)
 const S = { records:{}, view:"dashboard", dashMonth:monthKey(new Date()), invFilter:"all", invSearch:"",
   expMonth:monthKey(new Date()), expCat:"", expSearch:"", modal:null, pendingImport:null };
-function load() { try { S.records = JSON.parse(localStorage.getItem(LS_KEY) || "{}") || {}; } catch { S.records = {}; } }
-function persist() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(S.records)); return true; }
-  catch { toast("Storage is full. Try a smaller logo or export a backup and remove old records."); return false; }
+
+/* ---------- accounts (Supabase) ---------- */
+const CFG = window.CEDI_CONFIG || {};
+const CLOUD = !!(CFG.supabaseUrl && CFG.supabaseAnonKey && window.supabase && window.supabase.createClient);
+const sb = CLOUD ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey,
+  {auth:{flowType:"pkce", persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}}) : null;
+const A = { phase: CLOUD ? "checking" : "local", user:null, workspaces:[], ws:null, role:null, members:[], invites:[],
+  channel:null, pendingInvite:null, inviteInfo:null, newLink:null, confirm:null,
+  g:{tab:"signin", mode:"password", busy:false, ok:"", err:"", otpEmail:"", email:""} };
+const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+const lsDel = k => { try { localStorage.removeItem(k); } catch {} };
+const lsJSON = k => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
+const isManager = () => !CLOUD || A.role === "owner" || A.role === "admin";
+const canDelete = () => isManager();
+const canEditBiz = () => isManager();
+const redirectURL = () => location.origin + location.pathname;
+function memberName(uid) {
+  if (!uid) return "";
+  if (A.user && uid === A.user.id) return "you";
+  const m = A.members.find(x => x.user_id === uid);
+  return m ? (m.display_name || (m.email || "").split("@")[0]) : "a former member";
 }
-function put(rec) { rec = JSON.parse(JSON.stringify(rec)); delete rec.example; S.records[rec.id] = rec; persist(); }
-function remove(id) { delete S.records[id]; persist(); }
+function legacyRecords() { const r = lsJSON(LS_KEY) || {}; return Object.values(r).filter(x => x && x.kind); }
+
+const cacheKey = () => CLOUD ? "cedi-cache-" + A.ws : LS_KEY;
+function load() { try { S.records = JSON.parse(localStorage.getItem(cacheKey()) || "{}") || {}; } catch { S.records = {}; } }
+function persist() {
+  try { localStorage.setItem(cacheKey(), JSON.stringify(S.records)); return true; }
+  catch { toast("Storage is full. Try a smaller logo, or remove old records."); return false; }
+}
+const cleanRec = rec => { const r = JSON.parse(JSON.stringify(rec)); delete r.example; delete r._by; delete r._at; return r; };
+function put(rec) {
+  rec = cleanRec(rec);
+  S.records[rec.id] = CLOUD ? {...rec, _by:A.user?.id, _at:new Date().toISOString()} : rec;
+  persist();
+  if (CLOUD) queueWrite({op:"upsert", ws:A.ws, rec});
+}
+function remove(id) { delete S.records[id]; persist(); if (CLOUD) queueWrite({op:"delete", ws:A.ws, id}); }
 function saveSettings(patch) { const cur = S.records.settings || {...DEFAULT_SETTINGS}; put({...cur, ...patch, id:"settings", kind:"settings"}); }
+
+/* ---------- sync: offline outbox + live updates ---------- */
+const OUTBOX = "cedi-outbox";
+let outbox = lsJSON(OUTBOX) || [], flushing = false;
+const opId = o => o.rec ? o.rec.id : o.id;
+const saveOutbox = () => lsSet(OUTBOX, JSON.stringify(outbox));
+const pendingCount = () => outbox.filter(o => o.ws === A.ws).length;
+const isNetErr = e => !e || !e.code || /fetch|network|load failed|timeout/i.test(e.message || "");
+function queueWrite(op) {
+  outbox = outbox.filter(o => !(o.ws === op.ws && opId(o) === opId(op)));
+  outbox.push(op); saveOutbox(); flush();
+}
+async function flush() {
+  if (!CLOUD || flushing || !A.user || !navigator.onLine) return;
+  flushing = true;
+  try {
+    while (outbox.length) {
+      const o = outbox[0];
+      const r = o.op === "upsert"
+        ? await sb.from("records").upsert({workspace_id:o.ws, id:o.rec.id, kind:o.rec.kind, data:o.rec})
+        : await sb.from("records").delete().eq("workspace_id", o.ws).eq("id", o.id);
+      if (r.error) {
+        if (isNetErr(r.error)) break;               // offline: keep it, retry later
+        outbox.shift(); saveOutbox();              // refused by the server: drop it and show the truth
+        toast(r.error.code === "42501" ? "Only owners and admins can make that change." : "A change couldn't be saved: " + r.error.message);
+        if (o.ws === A.ws) await refetch();
+        continue;
+      }
+      outbox.shift(); saveOutbox();
+    }
+  } finally { flushing = false; updateSyncNote(); }
+}
+window.addEventListener("online", () => { flush(); if (A.ws) refetch(); updateSyncNote(); render(); });
+window.addEventListener("offline", () => { updateSyncNote(); render(); });
+
+function rowToRec(r) { return {...r.data, id:r.id, _by:r.updated_by, _at:r.updated_at}; }
+async function refetch() {
+  if (!A.ws) return;
+  const ws = A.ws, recs = {};
+  for (let from = 0; ; from += 1000) {
+    const {data, error} = await sb.from("records").select("id,kind,data,updated_by,updated_at").eq("workspace_id", ws).range(from, from + 999);
+    if (error) return;                               // offline: keep the cached copy
+    data.forEach(r => recs[r.id] = rowToRec(r));
+    if (data.length < 1000) break;
+  }
+  if (ws !== A.ws) return;
+  outbox.filter(o => o.ws === ws).forEach(o => { if (o.op === "upsert") recs[o.rec.id] = o.rec; else delete recs[o.id]; });
+  S.records = recs; EXAMPLES = null; persist(); render();
+}
+let renderTimer;
+function scheduleRender() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    const a = document.activeElement;
+    if (a && a.closest && a.closest("#view") && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return scheduleRender();
+    render({skipModalForms:true});
+  }, 250);
+}
+function subscribe(ws) {
+  if (A.channel) { sb.removeChannel(A.channel); A.channel = null; }
+  A.channel = sb.channel("ws-" + ws)
+    .on("postgres_changes", {event:"*", schema:"public", table:"records", filter:"workspace_id=eq." + ws}, p => {
+      if (ws !== A.ws) return;
+      const id = p.eventType === "DELETE" ? p.old && p.old.id : p.new && p.new.id;
+      if (!id || outbox.some(o => o.ws === ws && opId(o) === id)) return;
+      if (p.eventType === "DELETE") delete S.records[id]; else S.records[id] = rowToRec(p.new);
+      EXAMPLES = null; persist(); scheduleRender();
+    })
+    .on("postgres_changes", {event:"*", schema:"public", table:"members", filter:"workspace_id=eq." + ws}, () => loadTeam())
+    .subscribe();
+}
+function updateSyncNote() {
+  const el = document.getElementById("railFoot"); if (!el) return;
+  if (!CLOUD) { const lb = (S.records.settings || {}).lastBackup; el.textContent = "Saved on this device" + (lb ? " · backed up " + fmtDate(lb) : ""); return; }
+  const n = pendingCount();
+  el.innerHTML = !navigator.onLine ? `<span class="sync off"><i></i>Offline${n ? ` · ${n} change${n > 1 ? "s" : ""} waiting` : ""}</span>`
+    : n ? `<span class="sync off"><i></i>Syncing ${n}…</span>` : `<span class="sync"><i></i>Synced with your team</span>`;
+}
+
+/* ---------- workspaces & team ---------- */
+async function loadWorkspaces() {
+  const {data, error} = await sb.from("members").select("role, workspaces(id,name)").eq("user_id", A.user.id);
+  if (error) { A.workspaces = lsJSON("cedi-wslist-" + A.user.id) || []; return; }
+  A.workspaces = data.filter(r => r.workspaces).map(r => ({id:r.workspaces.id, name:r.workspaces.name, role:r.role}))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  lsSet("cedi-wslist-" + A.user.id, JSON.stringify(A.workspaces));
+}
+async function openWorkspace(ws) {
+  A.ws = ws; lsSet("cedi-ws-" + A.user.id, ws);
+  const w = A.workspaces.find(x => x.id === ws); A.role = w ? w.role : "member";
+  A.members = []; A.invites = []; A.newLink = null; A.confirm = null;
+  EXAMPLES = null; load(); A.phase = "ready"; showGate(false); render();
+  subscribe(ws); refetch(); loadTeam(); flush();
+}
+async function loadTeam() {
+  if (!A.ws) return;
+  const ws = A.ws;
+  const m = await sb.from("members").select("user_id,role,email,display_name,joined_at").eq("workspace_id", ws).order("joined_at");
+  if (m.error || ws !== A.ws) return;
+  const me = m.data.find(x => x.user_id === A.user.id);
+  if (!me) { toast("You no longer have access to that business."); lsDel("cedi-cache-" + ws); await loadWorkspaces(); return routeAfterAuth(); }
+  A.members = m.data; A.role = me.role;
+  const w = A.workspaces.find(x => x.id === ws); if (w) w.role = me.role;
+  if (isManager()) {
+    const i = await sb.from("invites").select("token,role,created_at,expires_at,note").eq("workspace_id", ws)
+      .is("used_at", null).gt("expires_at", new Date().toISOString()).order("created_at", {ascending:false});
+    if (!i.error) A.invites = i.data;
+  } else A.invites = [];
+  render({skipModalForms:true});
+}
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
 /* ---------- example data ---------- */
@@ -363,7 +555,7 @@ function buildExamples() {
   return ex;
 }
 const realCount = () => Object.values(S.records).filter(r => r.kind !== "settings").length;
-const exampleMode = () => realCount() === 0 && !(S.records.settings && S.records.settings.examplesDismissed);
+const exampleMode = () => realCount() === 0 && !(S.records.settings && S.records.settings.examplesDismissed) && !(CLOUD && lsGet("cedi-ex-off-" + A.ws));
 function data() { if (exampleMode()) { EXAMPLES = EXAMPLES || buildExamples(); return EXAMPLES; } return S.records; }
 function settings() {
   const s = S.records.settings || data().settings || DEFAULT_SETTINGS;
@@ -549,28 +741,35 @@ function budgetBars(mk, limit) {
 }
 
 /* ---------- shell ---------- */
-function render() {
+function render(opts) {
+  if (CLOUD && A.phase !== "ready") { renderGate(); return; }
   const st = settings();
-  $("#bizName").textContent = st.business.name || "Set up your business";
+  const wsName = CLOUD ? (A.workspaces.find(w => w.id === A.ws) || {}).name : "";
+  $("#bizName").textContent = st.business.name || wsName || "Set up your business";
   $("#brandMark").innerHTML = st.logo ? `<img src="${st.logo}" alt="">` : "<span>₵</span>";
-  const lb = (S.records.settings || {}).lastBackup;
-  $("#railFoot").textContent = "Saved on this device" + (lb ? " · backed up " + fmtDate(lb) : "");
+  updateSyncNote();
   const due = all("invoice").filter(i => ["sent","overdue"].includes(invStatus(i))).length;
   $("#nav").innerHTML = VIEWS.map(([k, l]) => `<a href="#${k}" ${S.view === k ? 'aria-current="page"' : ""}>${I[k]}<span>${k === "dashboard" ? "Dashboard" : l}</span>${k === "invoices" && due ? `<span class="count">${due}</span>` : ""}</a>`).join("");
   $("#tabbar").innerHTML = VIEWS.map(([k, l]) => `<a href="#${k}" ${S.view === k ? 'aria-current="page"' : ""}>${I[k]}<span>${l}</span></a>`).join("");
   const v = {dashboard:vDashboard, invoices:vInvoices, receipts:vReceipts, expenses:vExpenses, budgets:vBudgets, business:vBusiness}[S.view] || vDashboard;
   const y = window.scrollY;
-  $("#view").innerHTML = (exampleMode() ? `<div class="banner"><span><b>Example data.</b> Explore freely. These samples disappear as soon as you add your first record.</span><button class="btn sm" data-action="dismiss-examples">Start with an empty ledger</button></div>` : setupNudge() + backupNudge()) + v();
+  $("#view").innerHTML = (exampleMode() ? `<div class="banner"><span><b>Example data.</b> Explore freely. These samples disappear as soon as you add your first record.</span><button class="btn sm" data-action="dismiss-examples">Start with an empty ledger</button></div>` : offlineNudge() + setupNudge() + backupNudge()) + v();
   window.scrollTo(0, y);
+  if (opts && opts.skipModalForms && S.modal && /Form$/.test(S.modal.type)) return;
   renderModal();
+}
+function offlineNudge() {
+  if (!CLOUD || navigator.onLine) return "";
+  const n = pendingCount();
+  return `<div class="banner lav"><span><b>You're offline.</b> You can keep working${n ? `; ${n} change${n > 1 ? "s" : ""} will sync` : " and changes will sync"} when you're back online.</span></div>`;
 }
 function setupNudge() {
   const st = settings();
-  if (S.view !== "dashboard" || exampleMode() || (st.business.name && st.logo)) return "";
+  if (S.view !== "dashboard" || exampleMode() || (st.business.name && st.logo) || !canEditBiz()) return "";
   return `<div class="banner pink"><span><b>Add your business ${st.business.name ? "logo" : "name and logo"}.</b> They appear at the top of every invoice and receipt.</span><a class="btn sm primary" href="#business">Set up business</a></div>`;
 }
 function backupNudge() {
-  if (S.view !== "dashboard" || realCount() < 3) return "";
+  if (CLOUD || S.view !== "dashboard" || realCount() < 3) return "";
   const lb = (S.records.settings || {}).lastBackup;
   if (lb && (new Date(today()) - new Date(lb)) / 864e5 < 30) return "";
   return `<div class="banner lav"><span><b>Back up your ledger.</b> Your records live only on this device. ${lb ? "Last backup " + fmtDate(lb) + "." : "You haven't made a backup yet."}</span><button class="btn sm" data-action="export-backup">Back up now</button></div>`;
@@ -587,7 +786,7 @@ function vDashboard() {
   const inc6 = {}; all("receipt").filter(r => months.includes(monthKey(r.date))).forEach(r => inc6[r.payer] = (inc6[r.payer] || 0) + num(r.amount));
   const inc6Total = Object.values(inc6).reduce((a, b) => a + b, 0);
   return `
-  <div class="head"><div><h1>Hello${st.business.name ? ", " + esc(st.business.name.split(" ")[0]) : ""}</h1><p>Your money at a glance · ${monthLabel(mk, true)}</p></div>
+  <div class="head"><div><h1>Hello${CLOUD && A.user ? ", " + esc(((A.user.user_metadata || {}).full_name || (A.user.user_metadata || {}).name || A.user.email.split("@")[0]).split(" ")[0]) : st.business.name ? ", " + esc(st.business.name.split(" ")[0]) : ""}</h1><p>Your money at a glance · ${monthLabel(mk, true)}</p></div>
     <div class="head-actions">
       <button class="btn sm ghost" data-action="dash-month" data-dir="-1" aria-label="Previous month">‹</button>
       <input type="month" id="dashMonth" value="${mk}" aria-label="Month">
@@ -626,11 +825,11 @@ function attentionList(open) {
       <span class="num">${money(invoiceTotals(i).total)}</span></div>`; }).join("")}</div>`;
 }
 function recentList() {
-  const items = [...all("receipt").map(r => ({t:"in", date:r.date, title:r.payer, sub:r.method, amt:num(r.amount), id:r.id})),
-    ...all("expense").map(e => ({t:"out", date:e.date, title:e.vendor, sub:e.category, amt:num(e.amount), id:e.id}))].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
+  const items = [...all("receipt").map(r => ({t:"in", date:r.date, title:r.payer, sub:r.method, amt:num(r.amount), id:r.id, by:r._by})),
+    ...all("expense").map(e => ({t:"out", date:e.date, title:e.vendor, sub:e.category, amt:num(e.amount), id:e.id, by:e._by}))].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
   if (!items.length) return `<div class="empty"><b>Nothing yet</b>Payments and expenses show up here.</div>`;
   return `<div class="list">${items.map(x => `<div class="li" data-action="${x.t === "in" ? "view-receipt" : "edit-expense"}" data-id="${x.id}">
-    <span class="ico ${x.t}">${x.t === "in" ? I.arrowIn : I.arrowOut}</span><div style="min-width:0"><div class="t">${esc(x.title)}</div><div class="s">${fmtDate(x.date)} · ${esc(x.sub)}</div></div>
+    <span class="ico ${x.t}">${x.t === "in" ? I.arrowIn : I.arrowOut}</span><div style="min-width:0"><div class="t">${esc(x.title)}</div><div class="s">${fmtDate(x.date)} · ${esc(x.sub)}${CLOUD && A.members.length > 1 && x.by ? " · " + esc(memberName(x.by)) : ""}</div></div>
     <span class="num ${x.t === "in" ? "up" : ""}">${x.t === "in" ? "+" : "−"}${money(x.amt)}</span></div>`).join("")}</div>`;
 }
 
@@ -710,23 +909,29 @@ function vBudgets() {
       ${donut(CATEGORIES.map(c => ({name:c, value:num(st.budgets[c]), color:CAT_COLOR[c]})), shortMoney(totalB), "PER MONTH", "Budget split by category")}</section>
   </div>
   <section class="panel"><div class="panel-head"><h2>Monthly limits</h2><span class="sub">${st.currency}</span></div>
-    <form id="budgetForm"><div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+    <form id="budgetForm"><fieldset ${canEditBiz() ? "" : "disabled"}><div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
       ${CATEGORIES.map((c, i) => `<div class="field"><label for="b${i}">${esc(c)}</label><input type="number" inputmode="decimal" min="0" step="10" id="b${i}" name="${esc(c)}" value="${num(st.budgets[c]) || ""}" placeholder="No limit"></div>`).join("")}
-    </div><div style="margin-top:16px"><button class="btn primary" type="submit">Save budgets</button></div></form></section>`;
+    </div><div style="margin-top:16px">${canEditBiz() ? '<button class="btn primary" type="submit">Save budgets</button>' : '<span class="muted">Owners and admins set the budgets.</span>'}</div></fieldset></form></section>`;
 }
 
-/* ---------- Business ---------- */
+/* ---------- Business, team & account ---------- */
+const AV = ["--pink","--olive","--lav","--peach","--mint","--sky","--butter"];
+const initials = n => (n || "?").split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join("");
+const roleLabel = r => ({owner:"Owner", admin:"Admin", member:"Member"}[r] || r);
+const inviteURL = tok => redirectURL() + "?invite=" + tok;
 function vBusiness() {
-  const st = settings(), b = st.business, lb = (S.records.settings || {}).lastBackup;
+  const st = settings(), b = st.business, lb = (S.records.settings || {}).lastBackup, ed = canEditBiz();
+  const legacy = CLOUD && isManager() ? legacyRecords().filter(r => r.kind !== "settings").length : 0;
   return `
-  <div class="head"><div><h1>Business</h1><p>These details and your logo appear on every invoice and receipt.</p></div></div>
+  <div class="head"><div><h1>Business</h1><p>${CLOUD ? "Business details, your team and your account." : "These details and your logo appear on every invoice and receipt."}</p></div></div>
+  ${CLOUD && !ed ? `<div class="banner lav"><span>You're a <b>${roleLabel(A.role).toLowerCase()}</b> of this business. Owners and admins manage these details.</span></div>` : ""}
   <section class="panel"><div class="panel-head"><h2>Company logo</h2><span class="sub">Shown on invoices, receipts and PDFs</span></div>
     <div class="logo-box"><div class="preview">${st.logo ? `<img src="${st.logo}" alt="Your logo">` : "No logo"}</div>
-      <div style="display:flex;flex-direction:column;gap:8px;min-width:0"><span class="muted">PNG with a transparent background looks best. It's resized automatically.</span>
+      ${ed ? `<div style="display:flex;flex-direction:column;gap:8px;min-width:0"><span class="muted">PNG with a transparent background looks best. It's resized automatically.</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn olive file-btn">${st.logo ? "Replace logo" : "Upload logo"}<input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp"></label>
-        ${st.logo ? `<button class="btn danger" data-action="remove-logo">Remove</button>` : ""}</div></div></div></section>
+        ${st.logo ? `<button class="btn danger" data-action="remove-logo">Remove</button>` : ""}</div></div>` : ""}</div></section>
   <section class="panel"><div class="panel-head"><h2>Details</h2></div>
-    <form id="bizForm" class="form-grid">
+    <form id="bizForm"><fieldset class="form-grid" ${ed ? "" : "disabled"}>
       <div class="field full"><label for="bzName">Business name</label><input type="text" id="bzName" name="name" value="${esc(b.name)}" placeholder="e.g. Asante Media Ltd."></div>
       <div class="field"><label for="bzEmail">Email</label><input type="email" id="bzEmail" name="email" value="${esc(b.email)}"></div>
       <div class="field"><label for="bzPhone">Phone</label><input type="tel" id="bzPhone" name="phone" value="${esc(b.phone)}"></div>
@@ -736,14 +941,65 @@ function vBusiness() {
       <div class="field"><label for="bzCur">Currency</label><select id="bzCur" name="currency">${CURRENCIES.map(c => `<option ${st.currency === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
       <div class="field"><label for="bzTax">Default tax / VAT %</label><input type="number" inputmode="decimal" min="0" step="0.5" id="bzTax" name="taxRate" value="${num(st.taxRate)}"></div>
       <div class="field"><label for="bzPre">Invoice number prefix</label><input type="text" id="bzPre" name="prefix" value="${esc(st.prefix)}" maxlength="8"></div>
-      <div class="field full"><div><button class="btn primary" type="submit">Save details</button></div></div>
-    </form></section>
-  <section class="panel"><div class="panel-head"><h2>Backup &amp; restore</h2><span class="sub">${lb ? "Last backup " + fmtDate(lb) : "No backup yet"}</span></div>
-    <p class="muted" style="margin:0 0 14px">Your records are stored only on this device. Save a backup file to iCloud Drive or send it to yourself, and restore it on a new phone or browser.</p>
-    ${S.pendingImport ? `<div class="confirm" style="margin-bottom:12px"><span>Replace everything on this device with <b>${S.pendingImport.count}</b> records from ${esc(S.pendingImport.name)}?</span>
-      <span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" data-action="cancel-import">Cancel</button><button class="btn sm danger solid" data-action="confirm-import">Replace</button></span></div>` : ""}
+      ${ed ? `<div class="field full"><div><button class="btn primary" type="submit">Save details</button></div></div>` : ""}
+    </fieldset></form></section>
+  ${CLOUD ? vTeam() : ""}
+  <section class="panel"><div class="panel-head"><h2>Backup${CLOUD ? " &amp; export" : " &amp; restore"}</h2><span class="sub">${CLOUD ? "" : lb ? "Last backup " + fmtDate(lb) : "No backup yet"}</span></div>
+    <p class="muted" style="margin:0 0 14px">${CLOUD ? "Your records are saved to your team's account and sync to every signed-in device. You can still save a copy as a file." : "Your records are stored only on this device. Save a backup file to iCloud Drive or send it to yourself, and restore it on a new phone or browser."}</p>
+    ${S.pendingImport ? `<div class="confirm" style="margin-bottom:12px"><span>${CLOUD ? "Add" : "Replace everything on this device with"} <b>${S.pendingImport.count}</b> records from ${esc(S.pendingImport.name)}${CLOUD ? " to this business? Records with the same ID are overwritten." : "?"}</span>
+      <span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" data-action="cancel-import">Cancel</button><button class="btn sm danger solid" data-action="confirm-import">${CLOUD ? "Add records" : "Replace"}</button></span></div>` : ""}
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn olive" data-action="export-backup">${I.share}Save backup</button>
-      <label class="btn file-btn">Restore from backup<input type="file" id="importInput" accept="application/json,.json"></label></div></section>`;
+      ${isManager() ? `<label class="btn file-btn">${CLOUD ? "Add records from a backup" : "Restore from backup"}<input type="file" id="importInput" accept="application/json,.json"></label>` : ""}
+      ${legacy ? `<button class="btn" data-action="import-legacy">Bring over ${legacy} record${legacy > 1 ? "s" : ""} from this device</button>` : ""}</div></section>
+  ${CLOUD ? vAccount() : ""}`;
+}
+function vTeam() {
+  const mgr = isManager(), me = A.user.id, ownerMe = A.role === "owner";
+  const rows = A.members.map((m, i) => {
+    const you = m.user_id === me, name = m.display_name || (m.email || "").split("@")[0];
+    let actions = `<span class="pill role-${m.role}">${roleLabel(m.role)}</span>`;
+    if (mgr && !you && m.role !== "owner") {
+      if (A.confirm && A.confirm.type === "remove" && A.confirm.id === m.user_id)
+        actions = `<span class="muted">Remove ${esc(name)}?</span><button class="btn sm" data-action="cancel-confirm">Keep</button><button class="btn sm danger solid" data-action="do-remove-member" data-id="${m.user_id}">Remove</button>`;
+      else actions = `<select aria-label="Role for ${esc(name)}" data-role-for="${m.user_id}"><option value="member" ${m.role === "member" ? "selected" : ""}>Member</option><option value="admin" ${m.role === "admin" ? "selected" : ""}>Admin</option></select>
+        <button class="btn sm danger" data-action="ask-remove-member" data-id="${m.user_id}">Remove</button>`;
+    }
+    return `<div class="member"><span class="avatar" style="background:var(${AV[i % AV.length]})">${esc(initials(name))}</span>
+      <div style="min-width:0"><div class="t">${esc(name)}${you ? " (you)" : ""}</div><div class="s">${esc(m.email || "")}</div></div><div class="member-actions">${actions}</div></div>`;
+  }).join("");
+  const others = A.members.filter(m => m.user_id !== me);
+  return `<section class="panel"><div class="panel-head"><h2>Team</h2><span class="sub">${A.members.length} ${A.members.length === 1 ? "person" : "people"}</span></div>
+    <div>${rows || '<div class="spinner"></div>'}</div>
+    <p class="muted" style="margin:14px 0 0">Members add and edit invoices, receipts and expenses. Admins can also delete records, edit business details and invite people. The owner can do everything.</p>
+    ${mgr ? `<div style="margin-top:18px;display:flex;flex-direction:column;gap:12px"><h3 style="font-size:16px">Invite someone</h3>
+      <div class="row-inline"><div class="field"><label for="invRole">Role</label><select id="invRole"><option value="member">Member</option><option value="admin">Admin</option></select></div>
+        <div class="field"><label for="invNote">Who is it for? (optional)</label><input type="text" id="invNote" maxlength="60" placeholder="e.g. Kofi, accountant"></div>
+        <button class="btn primary" data-action="create-invite">Create invite link</button></div>
+      ${A.newLink ? `<div class="invite-link"><span><b>Send this link to ${esc(A.newLink.note || "your teammate")}.</b> It works once and expires in 7 days.</span><code>${esc(inviteURL(A.newLink.token))}</code>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm olive" data-action="share-invite" data-token="${A.newLink.token}">${I.share}Share link</button><button class="btn sm" data-action="copy-invite" data-token="${A.newLink.token}">Copy link</button></div></div>` : ""}
+      ${A.invites.length ? `<div><span class="lbl">Open invites</span>${A.invites.map(i => `<div class="member" style="grid-template-columns:minmax(0,1fr) auto"><div style="min-width:0"><div class="t">${esc(i.note || "Invite link")} · ${roleLabel(i.role)}</div><div class="s">Expires ${fmtDate(i.expires_at.slice(0, 10))}</div></div>
+        <div class="member-actions"><button class="btn sm" data-action="copy-invite" data-token="${i.token}">Copy</button><button class="btn sm danger" data-action="revoke-invite" data-token="${i.token}">Revoke</button></div></div>`).join("")}</div>` : ""}
+    </div>` : ""}
+    ${ownerMe && others.length ? `<div style="margin-top:18px"><h3 style="font-size:16px;margin-bottom:8px">Transfer ownership</h3>
+      ${A.confirm && A.confirm.type === "transfer" ? `<div class="confirm"><span>Make <b>${esc(memberName(A.confirm.id))}</b> the owner? You'll become an admin.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" data-action="cancel-confirm">Cancel</button><button class="btn sm danger solid" data-action="do-transfer">Transfer</button></span></div>`
+        : `<div class="row-inline"><div class="field"><label for="xferTo">New owner</label><select id="xferTo">${others.map(m => `<option value="${m.user_id}">${esc(m.display_name || m.email)}</option>`).join("")}</select></div><button class="btn" data-action="ask-transfer">Transfer…</button></div>`}</div>` : ""}
+    ${!ownerMe ? `<div style="margin-top:18px">${A.confirm && A.confirm.type === "leave" ? `<div class="confirm"><span>Leave this business? You'll lose access to its records.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" data-action="cancel-confirm">Stay</button><button class="btn sm danger solid" data-action="do-leave">Leave</button></span></div>` : `<button class="btn danger" data-action="ask-leave">Leave this business</button>`}</div>` : ""}
+  </section>`;
+}
+function vAccount() {
+  const u = A.user, meta = u.user_metadata || {};
+  return `<section class="panel"><div class="panel-head"><h2>Your account</h2></div>
+    <div class="member" style="border:0"><span class="avatar" style="background:var(--pink)">${esc(initials(meta.full_name || meta.name || u.email))}</span>
+      <div style="min-width:0"><div class="t">${esc(meta.full_name || meta.name || u.email.split("@")[0])}</div><div class="s">${esc(u.email)}</div></div><span></span></div>
+    <form id="nameForm" class="row-inline" style="margin-top:8px"><div class="field"><label for="acName">Display name</label><input type="text" id="acName" maxlength="60" value="${esc(meta.full_name || meta.name || "")}"></div><button class="btn">Save name</button></form>
+    <form id="passForm" class="row-inline" style="margin-top:12px"><div class="field"><label for="acPass">${(u.app_metadata?.providers || []).includes("email") ? "New password" : "Set a password"}</label><input type="password" id="acPass" autocomplete="new-password" minlength="8" placeholder="At least 8 characters"></div><button class="btn">Update password</button></form>
+    <div style="margin-top:20px"><span class="lbl">Your businesses</span>
+      <div class="ws-list" style="margin-top:8px">${A.workspaces.map(w => `<div class="ws-row ${w.id === A.ws ? "current" : ""}"><div style="min-width:0"><b>${esc(w.name)}</b><div class="muted">${roleLabel(w.role)}</div></div>
+        ${w.id === A.ws ? '<span class="muted">Open</span>' : `<button class="btn sm" data-action="switch-ws" data-id="${w.id}">Open</button>`}</div>`).join("")}</div>
+      <form id="newWsForm" class="row-inline" style="margin-top:10px"><div class="field"><label for="newWsName">Start another business</label><input type="text" id="newWsName" maxlength="120" placeholder="Business name"></div><button class="btn">Create</button></form></div>
+    <div style="margin-top:20px">${A.confirm && A.confirm.type === "signout" ? `<div class="confirm"><span>${pendingCount() ? `<b>${pendingCount()} change${pendingCount() > 1 ? "s haven't" : " hasn't"} synced yet</b> and will be lost. ` : ""}Sign out of this device?</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" data-action="cancel-confirm">Cancel</button><button class="btn sm danger solid" data-action="sign-out">Sign out</button></span></div>`
+      : `<button class="btn" data-action="ask-signout">Sign out</button>`}</div>
+  </section>`;
 }
 
 /* ---------- documents ---------- */
@@ -912,6 +1168,7 @@ function renderModal() {
   root.innerHTML = `<div class="overlay" data-action="overlay"><div class="modal ${m.type === "expenseForm" || m.type === "receiptForm" ? "narrow" : ""}" role="dialog" aria-modal="true">${body}</div></div>`;
   root.querySelector(".overlay").scrollTop = st;
 }
+const byline = r => CLOUD && r && r._by ? `<div class="byline">Last updated by ${esc(memberName(r._by))}${r._at ? " · " + fmtDate(r._at.slice(0, 10)) : ""}</div>` : "";
 const mHead = t => `<div class="modal-head"><h2>${t}</h2><button class="btn ghost sm" data-action="close" aria-label="Close">${I.x}</button></div>`;
 const confirmBar = (m, what) => m.confirmDelete ? `<div class="confirm"><span>Delete this ${what}? This can't be undone.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" data-action="cancel-delete">Keep</button><button class="btn sm danger solid" data-action="do-delete">Delete</button></span></div>` : "";
 const totalsHTML = (t, d) => `<span>Subtotal</span><span class="num">${money(t.sub)}</span>${t.disc ? `<span>Discount</span><span class="num">−${money(t.disc)}</span>` : ""}${num(d.taxRate) ? `<span>Tax</span><span class="num">${money(t.tax)}</span>` : ""}<span class="grand">Total</span><span class="num grand">${money(t.total)}</span>`;
@@ -922,13 +1179,13 @@ function mInvoiceForm(m) {
   const bname = m.bizName !== undefined ? m.bizName : st.business.name;
   return mHead(m.isNew ? "New invoice" : "Edit " + esc(d.number)) + `
   <form id="invForm" class="modal-body">
-    <div class="field"><span class="lbl">From · your business</span>
+    ${!canEditBiz() ? `<div class="field"><span class="lbl">From · your business</span><div class="from-box"><div class="preview">${st.logo ? `<img src="${st.logo}" alt="">` : "No logo"}</div><div><b>${esc(st.business.name || "Business name not set")}</b><div class="muted">Owners and admins manage business details.</div></div></div></div>` : `<div class="field"><span class="lbl">From · your business</span>
       <div class="from-box"><div class="preview">${st.logo ? `<img src="${st.logo}" alt="Your logo">` : "No logo"}</div>
         <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
           <input type="text" id="fBizName" value="${esc(bname)}" placeholder="Business name (shown on the invoice)" aria-label="Business name">
           <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn sm olive file-btn">${st.logo ? "Change logo" : "Add logo"}<input type="file" id="formLogoInput" accept="image/png,image/jpeg,image/webp"></label>
           ${st.logo ? `<button type="button" class="btn sm danger" data-action="remove-logo-form">Remove logo</button>` : ""}
-          <a class="btn sm ghost" style="white-space:normal;text-align:left;padding-left:2px" href="#business" data-action="close">Address, phone &amp; payment details</a></div></div></div></div>
+          <a class="btn sm ghost" style="white-space:normal;text-align:left;padding-left:2px" href="#business" data-action="close">Address, phone &amp; payment details</a></div></div></div></div>`}
     <div class="form-grid">
       <div class="field"><label for="fNum">Invoice number</label><input type="text" id="fNum" name="number" value="${esc(d.number)}" required></div>
       <div class="field"><label for="fStatus">Status</label><select id="fStatus" name="status">${["draft","sent","paid"].map(s => `<option value="${s}" ${d.status === s ? "selected" : ""}>${statusLabel(s)}</option>`).join("")}</select></div>
@@ -961,8 +1218,8 @@ function mInvoiceView(m) {
   const inv = data()[m.id]; if (!inv) return mHead("Invoice not found") + `<div class="modal-body">It may have been deleted.</div>`;
   const s = invStatus(inv), rct = all("receipt").find(r => r.invoiceId === inv.id);
   return mHead(`${esc(inv.number)} <span class="pill ${s}" style="vertical-align:5px;margin-left:6px">${statusLabel(s)}</span>`) + `
-  <div class="modal-body">${confirmBar(m, "invoice")}${invoiceDoc(inv)}</div>
-  <div class="modal-foot"><button class="btn danger left" data-action="ask-delete">Delete</button>
+  <div class="modal-body">${confirmBar(m, "invoice")}${invoiceDoc(inv)}${byline(inv)}</div>
+  <div class="modal-foot">${canDelete() ? `<button class="btn danger left" data-action="ask-delete">Delete</button>` : `<span class="left"></span>`}
     <button class="btn" data-action="edit-invoice">Edit</button>
     <button class="btn" data-action="text-invoice">${I.share}Share as text</button>
     <button class="btn" data-action="pdf-invoice">${I.file}PDF</button>
@@ -986,8 +1243,8 @@ function mReceiptForm(m) {
 }
 function mReceiptView(m) {
   const r = data()[m.id]; if (!r) return mHead("Receipt not found") + `<div class="modal-body">It may have been deleted.</div>`;
-  return mHead(esc(r.number)) + `<div class="modal-body">${confirmBar(m, "receipt")}${receiptDoc(r)}</div>
-  <div class="modal-foot"><button class="btn danger left" data-action="ask-delete">Delete</button><button class="btn" data-action="edit-receipt">Edit</button>
+  return mHead(esc(r.number)) + `<div class="modal-body">${confirmBar(m, "receipt")}${receiptDoc(r)}${byline(r)}</div>
+  <div class="modal-foot">${canDelete() ? `<button class="btn danger left" data-action="ask-delete">Delete</button>` : `<span class="left"></span>`}<button class="btn" data-action="edit-receipt">Edit</button>
     <button class="btn" data-action="text-receipt">${I.share}Share as text</button><button class="btn primary" data-action="pdf-receipt">${I.file}Share PDF</button></div>`;
 }
 function mExpenseForm(m) {
@@ -1001,7 +1258,8 @@ function mExpenseForm(m) {
     <div class="field"><label for="eMethod">Paid with</label><select id="eMethod" name="method">${METHODS.map(x => `<option ${d.method === x ? "selected" : ""}>${x}</option>`).join("")}</select></div>
     <div class="field full"><label for="eNote">Note</label><input type="text" id="eNote" name="note" value="${esc(d.note)}"></div>
   </div></form>
-  <div class="modal-foot">${m.isNew ? "" : `<button class="btn danger left" data-action="ask-delete">Delete</button>`}<button class="btn" data-action="close">Cancel</button><button class="btn primary" data-action="save-expense">${m.isNew ? "Add expense" : "Save changes"}</button></div>`;
+  ${m.isNew ? "" : byline(d).replace('class="byline"', 'class="byline" style="padding:0 20px"')}
+  <div class="modal-foot">${m.isNew || !canDelete() ? "" : `<button class="btn danger left" data-action="ask-delete">Delete</button>`}<button class="btn" data-action="close">Cancel</button><button class="btn primary" data-action="save-expense">${m.isNew ? "Add expense" : "Save changes"}</button></div>`;
 }
 
 /* ---------- forms ---------- */
@@ -1030,7 +1288,7 @@ async function act(a, el) {
   const m = S.modal;
   switch (a) {
     case "close": closeModal(); if (el.getAttribute && el.getAttribute("href")) location.hash = el.getAttribute("href").slice(1); break;
-    case "dismiss-examples": saveSettings({examplesDismissed:true}); render(); toast("Ledger cleared. Add your first record."); break;
+    case "dismiss-examples": if (CLOUD) lsSet("cedi-ex-off-" + A.ws, "1"); else saveSettings({examplesDismissed:true}); render(); toast("Ledger cleared. Add your first record."); break;
     case "dash-month": S.dashMonth = addMonths(S.dashMonth, +el.dataset.dir); render(); break;
     case "inv-filter": S.invFilter = el.dataset.v; render(); break;
     case "exp-allmonths": S.expMonth = S.expMonth ? "" : monthKey(new Date()); render(); break;
@@ -1045,7 +1303,7 @@ async function act(a, el) {
       d.items = d.items.filter(it => it.desc || num(it.price));
       if (!d.items.length) { d.items = [{desc:"", qty:1, price:0}]; renderModal(); toast("Add at least one line item."); return; }
       const bn = (m.bizName ?? "").trim();
-      if (m.bizName !== undefined && bn !== settings().business.name) saveSettings({business:{...settings().business, name:bn}});
+      if (canEditBiz() && m.bizName !== undefined && bn !== settings().business.name) saveSettings({business:{...settings().business, name:bn}});
       if (d.status === "paid" && !d.paidDate) d.paidDate = today();
       if (d.status !== "paid") delete d.paidDate;
       put(d); toast(m.isNew ? "Invoice " + d.number + " created" : "Invoice saved");
@@ -1077,6 +1335,7 @@ async function act(a, el) {
     case "cancel-delete": m.confirmDelete = false; renderModal(); break;
     case "do-delete": {
       const id = m.id || m.draft?.id, rec = data()[id];
+      if (!canDelete()) { m.confirmDelete = false; renderModal(); toast("Only owners and admins can delete records."); return; }
       if (rec && rec.example) { m.confirmDelete = false; renderModal(); toast("Examples can't be deleted. Use “Start with an empty ledger”."); return; }
       if (rec && rec.kind === "receipt" && rec.invoiceId && S.records[rec.invoiceId]?.status === "paid") { const inv = {...S.records[rec.invoiceId], status:"sent"}; delete inv.paidDate; put(inv); }
       remove(id); S.modal = null; render(); toast("Deleted"); break;
@@ -1093,10 +1352,60 @@ async function act(a, el) {
     case "export-backup": {
       const blob = new Blob([JSON.stringify({app:"cedi-ledger", version:1, exported:new Date().toISOString(), records:S.records}, null, 1)], {type:"application/json"});
       await shareFile(blob, "cedi-ledger-backup-" + today() + ".json", "Cedi Ledger backup");
-      saveSettings({lastBackup:today()}); render(); break;
+      if (!CLOUD) saveSettings({lastBackup:today()}); render(); break;
     }
     case "cancel-import": S.pendingImport = null; render(); break;
-    case "confirm-import": S.records = S.pendingImport.records; S.pendingImport = null; persist(); EXAMPLES = null; render(); toast("Backup restored"); break;
+    case "confirm-import": {
+      if (CLOUD) {
+        if (!isManager()) { S.pendingImport = null; render(); return; }
+        const recs = Object.values(S.pendingImport.records).filter(r => r && r.kind && r.id);
+        recs.forEach(r => put(r)); S.pendingImport = null; EXAMPLES = null; render(); toast(recs.length + " records added. Syncing to your team…"); break;
+      }
+      S.records = S.pendingImport.records; S.pendingImport = null; persist(); EXAMPLES = null; render(); toast("Backup restored"); break;
+    }
+    case "import-legacy": {
+      if (!isManager()) return;
+      const recs = legacyRecords(); recs.forEach(r => put(r)); EXAMPLES = null; render(); toast(recs.length + " records brought over. Syncing to your team…"); break;
+    }
+    case "create-invite": {
+      const role = $("#invRole").value, note = $("#invNote").value.trim() || null;
+      const {data, error} = await sb.from("invites").insert({workspace_id:A.ws, role, note}).select("token,role,note,created_at,expires_at").single();
+      if (error) { toast(isNetErr(error) ? "Connect to the internet to create an invite." : "Couldn't create the invite: " + error.message); return; }
+      A.newLink = data; A.invites = [data, ...A.invites]; render(); break;
+    }
+    case "share-invite": {
+      const name = (A.workspaces.find(w => w.id === A.ws) || {}).name || "our business";
+      shareText(`You're invited to join ${name} on Cedi Ledger. Open this link to sign up and get access:
+${inviteURL(el.dataset.token)}`, "Join " + name); break;
+    }
+    case "copy-invite": copyText(inviteURL(el.dataset.token)); break;
+    case "revoke-invite": {
+      const {error} = await sb.from("invites").delete().eq("token", el.dataset.token);
+      if (error) { toast("Couldn't revoke: " + error.message); return; }
+      A.invites = A.invites.filter(i => i.token !== el.dataset.token); if (A.newLink && A.newLink.token === el.dataset.token) A.newLink = null;
+      render(); toast("Invite revoked"); break;
+    }
+    case "ask-remove-member": A.confirm = {type:"remove", id:el.dataset.id}; render(); break;
+    case "ask-transfer": A.confirm = {type:"transfer", id:$("#xferTo").value}; render(); break;
+    case "ask-leave": A.confirm = {type:"leave"}; render(); break;
+    case "ask-signout": A.confirm = {type:"signout"}; render(); break;
+    case "cancel-confirm": A.confirm = null; render(); break;
+    case "do-remove-member": {
+      const {error} = await sb.from("members").delete().eq("workspace_id", A.ws).eq("user_id", el.dataset.id);
+      A.confirm = null; if (error) toast("Couldn't remove: " + error.message); else toast("Removed from the team"); loadTeam(); break;
+    }
+    case "do-transfer": {
+      const {error} = await sb.rpc("transfer_ownership", {p_workspace:A.ws, p_user:A.confirm.id});
+      A.confirm = null; if (error) toast(error.message); else { toast("Ownership transferred"); await loadWorkspaces(); } loadTeam(); break;
+    }
+    case "do-leave": {
+      const ws = A.ws, {error} = await sb.from("members").delete().eq("workspace_id", ws).eq("user_id", A.user.id);
+      A.confirm = null; if (error) { toast("Couldn't leave: " + error.message); render(); return; }
+      lsDel("cedi-cache-" + ws); if (A.channel) { sb.removeChannel(A.channel); A.channel = null; }
+      A.ws = null; toast("You left the business"); routeAfterAuth(); break;
+    }
+    case "switch-ws": S.modal = null; location.hash = "dashboard"; openWorkspace(el.dataset.id); toast("Switched business"); break;
+    case "sign-out": signOut(); break;
   }
 }
 
@@ -1105,7 +1414,9 @@ document.addEventListener("click", e => {
   const a = el.dataset.action;
   if (a === "overlay") { if (e.target === el) closeModal(); return; }
   if (el.tagName === "LABEL") return;
-  e.preventDefault(); act(a, el);
+  e.preventDefault();
+  if (a.startsWith("g-")) { gateAction(a, el); return; }
+  act(a, el);
 });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && S.modal) closeModal(); });
 document.addEventListener("input", e => {
@@ -1123,6 +1434,10 @@ document.addEventListener("change", async e => {
   if (t.id === "dashMonth" && t.value) { S.dashMonth = t.value; render(); }
   else if (t.id === "expMonth") { S.expMonth = t.value; render(); }
   else if (t.id === "expCat") { S.expCat = t.value; render(); }
+  else if (t.dataset && t.dataset.roleFor) {
+    const {error} = await sb.from("members").update({role:t.value}).eq("workspace_id", A.ws).eq("user_id", t.dataset.roleFor);
+    toast(error ? "Couldn't change role: " + error.message : "Role updated"); loadTeam();
+  }
   else if (t.id === "formLogoInput") {
     syncInvoiceDraft();
     try { const url = await readLogo(t.files[0]); saveSettings({logo:url}); render(); toast("Logo added"); }
@@ -1144,12 +1459,33 @@ function rerenderKeepFocus(id) {
   const el = document.getElementById(id), pos = el.selectionStart; render();
   const n = document.getElementById(id); n.focus(); try { n.setSelectionRange(pos, pos); } catch {}
 }
-document.addEventListener("submit", e => {
+document.addEventListener("submit", async e => {
   e.preventDefault(); const f = e.target;
+  if (f.closest && f.closest("#gate")) { gateSubmit(f.id); return; }
+  if (f.id === "nameForm") {
+    const full_name = $("#acName").value.trim();
+    const {data, error} = await sb.auth.updateUser({data:{full_name}});
+    if (error) { toast(friendlyAuthError(error)); return; }
+    A.user = data.user; await sb.rpc("set_display_name", {p_name:full_name});
+    toast("Name saved"); loadTeam(); return;
+  }
+  if (f.id === "passForm") {
+    const p = $("#acPass").value; if (p.length < 8) { toast("Use at least 8 characters."); return; }
+    const {error} = await sb.auth.updateUser({password:p});
+    toast(error ? friendlyAuthError(error) : "Password updated"); if (!error) $("#acPass").value = ""; return;
+  }
+  if (f.id === "newWsForm") {
+    const name = $("#newWsName").value.trim(); if (!name) return;
+    const {data:ws, error} = await sb.rpc("create_workspace", {p_name:name});
+    if (error) { toast(isNetErr(error) ? "Connect to the internet to create a business." : error.message); return; }
+    await loadWorkspaces(); location.hash = "dashboard"; openWorkspace(ws); toast(name + " is ready"); return;
+  }
   if (f.id === "budgetForm") {
+    if (!canEditBiz()) return;
     const budgets = {}; f.querySelectorAll("input").forEach(i => { if (num(i.value) > 0) budgets[i.name] = num(i.value); });
     saveSettings({budgets}); render(); toast("Budgets saved");
   } else if (f.id === "bizForm") {
+    if (!canEditBiz()) return;
     const v = readForm(f, {});
     saveSettings({business:{name:v.name, email:v.email, phone:v.phone, address:v.address, momo:v.momo, bank:v.bank}, currency:v.currency, taxRate:num(v.taxRate),
       prefix:(v.prefix || "INV").replace(/[^A-Za-z0-9]/g, "").toUpperCase() || "INV"});
@@ -1159,12 +1495,206 @@ document.addEventListener("submit", e => {
   else if (f.id === "expForm") act("save-expense");
 });
 
+/* ---------- sign-in screens ---------- */
+const GOOGLE_SVG = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>';
+function friendlyAuthError(e) {
+  const m = (e && (e.message || e.error_description || String(e))) || "";
+  if (/invalid login credentials/i.test(m)) return "That email and password don't match. Try again, or reset your password.";
+  if (/email not confirmed/i.test(m)) return "Please confirm your email first. Check your inbox for the confirmation link.";
+  if (/already registered|already been registered|user already exists/i.test(m)) return "An account with this email already exists. Sign in instead.";
+  if (/rate limit|too many/i.test(m)) return "Too many attempts. Wait a few minutes and try again.";
+  if (/token has expired|invalid.*(otp|token)|otp.*(expired|invalid)/i.test(m)) return "That code is wrong or has expired. Request a new one.";
+  if (/password should be|password is too short|weak password/i.test(m)) return "Use a password with at least 8 characters.";
+  if (/fetch|network|load failed/i.test(m)) return "You're offline. Connect to the internet to sign in.";
+  if (/provider is not enabled|unsupported provider/i.test(m)) return "Google sign-in isn't switched on yet. Use email instead.";
+  return m || "Something went wrong. Try again.";
+}
+function showGate(on) { if (!on) $("#gate").innerHTML = ""; $("#gate").hidden = !on; $("#app").hidden = on; $("#tabbar").hidden = on; if (on) { S.modal = null; renderModal(); } }
+const brandBlock = (title, sub) => `<div class="gate-brand"><div class="brand-mark"><span>₵</span></div><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ""}</div>`;
+const msgs = () => (A.g.err ? `<div class="msg err" role="alert">${esc(A.g.err)}</div>` : "") + (A.g.ok ? `<div class="msg ok" role="status">${esc(A.g.ok)}</div>` : "");
+function renderGate() {
+  if (!CLOUD || A.phase === "ready") { showGate(false); return; }
+  showGate(true);
+  const g = A.g, busy = g.busy ? "disabled" : "";
+  let body = "";
+  if (A.phase === "checking" || A.phase === "loading") {
+    body = brandBlock("Cedi Ledger", A.phase === "loading" ? "Opening your books…" : "") + `<div class="spinner" role="status" aria-label="Loading"></div>`;
+  } else if (A.phase === "signed-out") {
+    const inv = lsGet("cedi-pending-invite");
+    body = brandBlock(g.tab === "signup" ? "Create your account" : "Welcome back", inv ? "Sign in or create an account to join your team's ledger." : "Invoices, receipts and expenses for your whole team.");
+    if (g.mode === "otp-sent") {
+      body += msgs() + `<form id="otpForm"><p>We emailed a sign-in link and a 6-digit code to <b>${esc(g.otpEmail)}</b>. Tap the link, or type the code here. The code works best inside the installed app.</p>
+        <div class="field"><label for="otpCode">6-digit code</label><input type="text" id="otpCode" class="code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required></div>
+        <button class="btn primary block" ${busy}>Sign in</button></form>
+        <div class="gate-links"><button class="linkbtn" data-action="g-mode" data-v="password">Use a password instead</button><button class="linkbtn" data-action="g-resend">Send a new code</button></div>`;
+    } else if (g.mode === "magic") {
+      body += msgs() + `<form id="magicForm"><div class="field"><label for="gEmail">Email</label><input type="email" id="gEmail" autocomplete="email" value="${esc(g.email)}" required></div>
+        <button class="btn primary block" ${busy}>Email me a sign-in code</button></form>
+        <div class="gate-links"><button class="linkbtn" data-action="g-mode" data-v="password">Use a password instead</button></div>`;
+    } else if (g.mode === "forgot") {
+      body += msgs() + `<form id="forgotForm"><p>Enter your email and we'll send you a link to set a new password.</p>
+        <div class="field"><label for="gEmail">Email</label><input type="email" id="gEmail" autocomplete="email" value="${esc(g.email)}" required></div>
+        <button class="btn primary block" ${busy}>Send reset link</button></form>
+        <div class="gate-links"><button class="linkbtn" data-action="g-mode" data-v="password">Back to sign in</button></div>`;
+    } else {
+      body += `<div class="chips" style="align-self:center"><button class="chip" data-action="g-tab" data-v="signin" aria-pressed="${g.tab === "signin"}">Sign in</button><button class="chip" data-action="g-tab" data-v="signup" aria-pressed="${g.tab === "signup"}">Create account</button></div>`
+        + (CFG.googleEnabled ? `<button class="btn block google" data-action="g-google" ${busy}>${GOOGLE_SVG}Continue with Google</button><div class="divider">or</div>` : "")
+        + msgs() + `<form id="${g.tab === "signup" ? "signupForm" : "signinForm"}">
+          ${g.tab === "signup" ? `<div class="field"><label for="gName">Your name</label><input type="text" id="gName" autocomplete="name" required></div>` : ""}
+          <div class="field"><label for="gEmail">Email</label><input type="email" id="gEmail" autocomplete="email" value="${esc(g.email)}" required></div>
+          <div class="field"><label for="gPass">Password</label><input type="password" id="gPass" autocomplete="${g.tab === "signup" ? "new-password" : "current-password"}" minlength="${g.tab === "signup" ? 8 : 1}" required>${g.tab === "signup" ? '<span class="muted">At least 8 characters</span>' : ""}</div>
+          <button class="btn primary block" ${busy}>${g.tab === "signup" ? "Create account" : "Sign in"}</button></form>
+        <div class="gate-links"><button class="linkbtn" data-action="g-mode" data-v="magic">Email me a sign-in code instead</button>${g.tab === "signin" ? '<button class="linkbtn" data-action="g-mode" data-v="forgot">Forgot password?</button>' : ""}</div>`;
+    }
+  } else if (A.phase === "recovery") {
+    body = brandBlock("Set a new password", "Choose a new password for " + esc(A.user?.email || "your account") + ".") + msgs()
+      + `<form id="recoveryForm"><div class="field"><label for="gPass">New password</label><input type="password" id="gPass" autocomplete="new-password" minlength="8" required></div>
+         <div class="field"><label for="gPass2">Confirm password</label><input type="password" id="gPass2" autocomplete="new-password" minlength="8" required></div>
+         <button class="btn primary block" ${busy}>Save password</button></form>`;
+  } else if (A.phase === "invite") {
+    const i = A.inviteInfo;
+    body = brandBlock("Join " + esc(i.workspace_name), esc(i.invited_by || "A teammate") + " invited you to join as " + (i.role === "admin" ? "an admin" : "a member") + ".") + msgs()
+      + `<button class="btn primary block" data-action="g-accept" ${busy}>Join ${esc(i.workspace_name)}</button>
+         <button class="btn block" data-action="g-decline" ${busy}>Not now</button>
+         <p class="byline" style="text-align:center">Signed in as ${esc(A.user.email)} · <button class="linkbtn" data-action="sign-out">Sign out</button></p>`;
+  } else if (A.phase === "create") {
+    const legacy = legacyRecords().filter(r => r.kind !== "settings").length;
+    body = brandBlock("Set up your business", "Name the business whose books you'll keep. You can invite your team next.") + msgs()
+      + `<form id="createWsForm"><div class="field"><label for="wsName">Business name</label><input type="text" id="wsName" maxlength="120" placeholder="e.g. Asante Media Ltd." required></div>
+         ${legacy ? `<label class="check"><input type="checkbox" id="wsImport" checked><span>Bring over the <b>${legacy}</b> record${legacy > 1 ? "s" : ""} already saved on this device</span></label>` : ""}
+         <button class="btn primary block" ${busy}>Create business</button></form>
+         <p class="muted" style="text-align:center">Joining a teammate's business? Open the invite link they sent you.</p>
+         <p class="byline" style="text-align:center">Signed in as ${esc(A.user.email)} · <button class="linkbtn" data-action="sign-out">Sign out</button></p>`;
+  }
+  $("#gate").innerHTML = `<div class="gate-card">${body}</div>`;
+}
+function gateSet(patch) { Object.assign(A.g, patch); renderGate(); }
+
+async function routeAfterAuth() {
+  A.phase = "loading"; renderGate();
+  const tok = lsGet("cedi-pending-invite");
+  if (tok && navigator.onLine) {
+    const {data, error} = await sb.rpc("invite_info", {p_token:tok});
+    if (!error && data && data[0]) {
+      A.pendingInvite = tok; A.inviteInfo = data[0];
+      await loadWorkspaces();
+      A.phase = "invite"; A.g.err = ""; A.g.ok = ""; renderGate(); return;
+    }
+    lsDel("cedi-pending-invite"); A.pendingInvite = null; A.inviteInfo = null;
+    A.g.err = "That invite link has expired or was already used. Ask for a new one.";
+  }
+  await loadWorkspaces();
+  if (!A.workspaces.length) { A.phase = "create"; renderGate(); return; }
+  const last = lsGet("cedi-ws-" + A.user.id);
+  openWorkspace(A.workspaces.some(w => w.id === last) ? last : A.workspaces[0].id);
+}
+function cleanAuthParams() {
+  const u = new URL(location.href); let changed = false;
+  ["code", "error", "error_code", "error_description", "type"].forEach(k => { if (u.searchParams.has(k)) { u.searchParams.delete(k); changed = true; } });
+  if (changed) history.replaceState(null, "", u.pathname + (u.searchParams.toString() ? "?" + u.searchParams : "") + u.hash);
+}
+function initAuth() {
+  const u = new URL(location.href);
+  if (u.searchParams.get("error_description")) A.g.err = friendlyAuthError(u.searchParams.get("error_description"));
+  sb.auth.onAuthStateChange((event, session) => {
+    setTimeout(() => {
+      if (event === "PASSWORD_RECOVERY") { A.user = session && session.user; A.phase = "recovery"; cleanAuthParams(); renderGate(); return; }
+      if (event === "SIGNED_OUT") { A.user = null; A.phase = "signed-out"; renderGate(); return; }
+      if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && session) {
+        cleanAuthParams();
+        if (A.phase === "recovery") return;
+        if (A.user && A.user.id === session.user.id && A.phase !== "checking" && A.phase !== "signed-out") { A.user = session.user; return; }
+        A.user = session.user; A.g = {...A.g, busy:false, err:"", ok:"", mode:"password"}; routeAfterAuth(); return;
+      }
+      if (event === "USER_UPDATED" && session) { A.user = session.user; return; }
+      if (event === "INITIAL_SESSION" && !session) { cleanAuthParams(); A.phase = "signed-out"; renderGate(); }
+    }, 0);
+  });
+}
+async function gateSubmit(id) {
+  const g = A.g, vals = {};
+  ["gEmail","gPass","gPass2","gName","otpCode","wsName"].forEach(k => { const el = document.getElementById(k); if (el) vals[k] = el.value; });
+  const wsImportEl = document.getElementById("wsImport"); const wsImport = !!(wsImportEl && wsImportEl.checked);
+  const val = x => vals[x] || "";
+  gateSet({busy:true, err:"", ok:""});
+  try {
+    if (id === "signinForm") {
+      g.email = val("gEmail").trim();
+      const {error} = await sb.auth.signInWithPassword({email:g.email, password:val("gPass")}); if (error) throw error;
+    } else if (id === "signupForm") {
+      g.email = val("gEmail").trim();
+      const {data, error} = await sb.auth.signUp({email:g.email, password:val("gPass"), options:{data:{full_name:val("gName").trim()}, emailRedirectTo:redirectURL()}});
+      if (error) throw error;
+      if (data.user && data.user.identities && data.user.identities.length === 0) throw new Error("User already registered");
+      if (!data.session) return gateSet({busy:false, tab:"signin", ok:"Account created. Check " + g.email + " for a confirmation link, then sign in here."});
+    } else if (id === "magicForm" || id === "resend") {
+      if (id === "magicForm") g.email = val("gEmail").trim();
+      const email = id === "resend" ? g.otpEmail : g.email;
+      const {error} = await sb.auth.signInWithOtp({email, options:{emailRedirectTo:redirectURL(), shouldCreateUser:true}}); if (error) throw error;
+      return gateSet({busy:false, mode:"otp-sent", otpEmail:email, ok:id === "resend" ? "New code sent." : ""});
+    } else if (id === "otpForm") {
+      const {error} = await sb.auth.verifyOtp({email:g.otpEmail, token:val("otpCode").replace(/\s/g, ""), type:"email"}); if (error) throw error;
+    } else if (id === "forgotForm") {
+      g.email = val("gEmail").trim();
+      const {error} = await sb.auth.resetPasswordForEmail(g.email, {redirectTo:redirectURL()}); if (error) throw error;
+      return gateSet({busy:false, ok:"If " + g.email + " has an account, a reset link is on its way."});
+    } else if (id === "recoveryForm") {
+      if (val("gPass") !== val("gPass2")) throw new Error("The two passwords don't match.");
+      const {error} = await sb.auth.updateUser({password:val("gPass")}); if (error) throw error;
+      A.g.busy = false; A.phase = "loading"; toast("Password updated"); return routeAfterAuth();
+    } else if (id === "createWsForm") {
+      const name = val("wsName").trim(), imp = wsImport;
+      const {data:ws, error} = await sb.rpc("create_workspace", {p_name:name}); if (error) throw error;
+      if (imp) {
+        const rows = legacyRecords().map(r => cleanRec(r)).map(r => ({workspace_id:ws, id:r.id, kind:r.kind, data:r}));
+        for (let i = 0; i < rows.length; i += 200) { const {error:e2} = await sb.from("records").upsert(rows.slice(i, i + 200)); if (e2) throw e2; }
+        lsSet("cedi-ex-off-" + ws, "1");
+      }
+      await loadWorkspaces(); A.g.busy = false; toast(name + " is ready"); openWorkspace(ws); return;
+    }
+    A.g.busy = false;
+  } catch (e) { gateSet({busy:false, err:friendlyAuthError(e)}); }
+}
+async function gateAction(a, el) {
+  if (a === "g-tab") return gateSet({tab:el.dataset.v, mode:"password", err:"", ok:""});
+  if (a === "g-mode") return gateSet({mode:el.dataset.v, err:"", ok:""});
+  if (a === "g-resend") return gateSubmit("resend");
+  if (a === "g-google") {
+    gateSet({busy:true, err:""});
+    const {error} = await sb.auth.signInWithOAuth({provider:"google", options:{redirectTo:redirectURL()}});
+    if (error) gateSet({busy:false, err:friendlyAuthError(error)});
+    return;
+  }
+  if (a === "g-accept") {
+    gateSet({busy:true, err:""});
+    const {data:ws, error} = await sb.rpc("accept_invite", {p_token:A.pendingInvite});
+    lsDel("cedi-pending-invite"); A.pendingInvite = null;
+    if (error) { A.inviteInfo = null; A.g.busy = false; A.g.err = error.message; return routeAfterAuth(); }
+    const name = A.inviteInfo.workspace_name; A.inviteInfo = null; A.g.busy = false;
+    await loadWorkspaces(); toast("You've joined " + name); openWorkspace(ws); return;
+  }
+  if (a === "g-decline") { lsDel("cedi-pending-invite"); A.pendingInvite = null; A.inviteInfo = null; return routeAfterAuth(); }
+}
+async function signOut() {
+  if (A.channel) { sb.removeChannel(A.channel); A.channel = null; }
+  try { Object.keys(localStorage).filter(k => /^cedi-(cache|wslist|outbox)/.test(k)).forEach(k => localStorage.removeItem(k)); } catch {}
+  outbox = []; S.records = {}; A.ws = null; A.role = null; A.members = []; A.invites = []; A.workspaces = [];
+  A.g = {tab:"signin", mode:"password", busy:false, ok:"", err:"", otpEmail:"", email:A.user?.email || ""};
+  await sb.auth.signOut({scope:"local"}).catch(() => {});
+  A.user = null; A.phase = "signed-out"; renderGate();
+}
+
 /* ---------- routing & boot ---------- */
 function route() { const h = location.hash.slice(1); S.view = VIEWS.some(v => v[0] === h) ? h : "dashboard"; S.modal = S.modal && S.modal.type === "invoiceView" ? S.modal : null; render(); window.scrollTo(0, 0); }
 window.addEventListener("hashchange", route);
-load();
+(() => {   // remember an invite link, then tidy the address bar
+  const u = new URL(location.href), tok = u.searchParams.get("invite");
+  if (tok && /^[a-f0-9]{32,80}$/i.test(tok)) lsSet("cedi-pending-invite", tok);
+  if (tok) { u.searchParams.delete("invite"); history.replaceState(null, "", u.pathname + (u.searchParams.toString() ? "?" + u.searchParams : "") + u.hash); }
+})();
 S.view = (VIEWS.find(v => v[0] === location.hash.slice(1)) || ["dashboard"])[0];
-render();
+if (CLOUD) { renderGate(); initAuth(); }
+else { load(); render(); }
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 })();
 </script>

@@ -1,7 +1,7 @@
 // Cedi Ledger service worker: keeps the app working offline.
-const VERSION = "cedi-ledger-v3";
+const VERSION = "cedi-ledger-v4";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./jspdf.umd.min.js",
-  "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
+  "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./config.js", "./supabase.min.js"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
