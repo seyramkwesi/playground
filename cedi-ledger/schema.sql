@@ -49,25 +49,29 @@ create index if not exists records_ws_kind on public.records (workspace_id, kind
 create index if not exists members_user on public.members (user_id);
 
 -- ============ Helpers (security definer avoids RLS recursion) ============
+-- Kept in a private schema so they are not callable through the public API.
+create schema if not exists private;
+revoke all on schema private from public, anon;
+grant usage on schema private to authenticated;
 
-create or replace function public.is_member(ws uuid)
+create or replace function private.is_member(ws uuid)
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (select 1 from members where workspace_id = ws and user_id = auth.uid());
 $$;
 
-create or replace function public.member_role(ws uuid)
+create or replace function private.member_role(ws uuid)
 returns text language sql stable security definer set search_path = public as $$
   select role from members where workspace_id = ws and user_id = auth.uid();
 $$;
 
-create or replace function public.is_manager(ws uuid)
+create or replace function private.is_manager(ws uuid)
 returns boolean language sql stable security definer set search_path = public as $$
-  select coalesce(public.member_role(ws) in ('owner','admin'), false);
+  select coalesce(private.member_role(ws) in ('owner','admin'), false);
 $$;
 
 -- Stamp who changed a record and when
 create or replace function public.touch_record()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $$
 begin
   new.updated_at := now();
   new.updated_by := auth.uid();
@@ -87,46 +91,46 @@ alter table public.records    enable row level security;
 -- workspaces: members read; owners/admins rename; only the owner deletes.
 -- New workspaces are created through create_workspace() below.
 drop policy if exists ws_select on public.workspaces;
-create policy ws_select on public.workspaces for select using (public.is_member(id));
+create policy ws_select on public.workspaces for select using (private.is_member(id));
 drop policy if exists ws_update on public.workspaces;
-create policy ws_update on public.workspaces for update using (public.is_manager(id)) with check (public.is_manager(id));
+create policy ws_update on public.workspaces for update using (private.is_manager(id)) with check (private.is_manager(id));
 drop policy if exists ws_delete on public.workspaces;
-create policy ws_delete on public.workspaces for delete using (public.member_role(id) = 'owner');
+create policy ws_delete on public.workspaces for delete using (private.member_role(id) = 'owner');
 
 -- members: everyone on the team sees the team list.
 -- Owners/admins change roles or remove people (never the owner);
 -- anyone except the owner can leave.
 drop policy if exists mem_select on public.members;
-create policy mem_select on public.members for select using (public.is_member(workspace_id));
+create policy mem_select on public.members for select using (private.is_member(workspace_id));
 drop policy if exists mem_update on public.members;
 create policy mem_update on public.members for update
-  using (public.is_manager(workspace_id) and role <> 'owner')
-  with check (public.is_manager(workspace_id) and role in ('admin','member'));
+  using (private.is_manager(workspace_id) and role <> 'owner')
+  with check (private.is_manager(workspace_id) and role in ('admin','member'));
 drop policy if exists mem_delete on public.members;
 create policy mem_delete on public.members for delete
-  using (role <> 'owner' and (public.is_manager(workspace_id) or user_id = auth.uid()));
+  using (role <> 'owner' and (private.is_manager(workspace_id) or user_id = auth.uid()));
 
 -- invites: only owners/admins create, see and revoke invite links.
 drop policy if exists inv_select on public.invites;
-create policy inv_select on public.invites for select using (public.is_manager(workspace_id));
+create policy inv_select on public.invites for select using (private.is_manager(workspace_id));
 drop policy if exists inv_insert on public.invites;
-create policy inv_insert on public.invites for insert with check (public.is_manager(workspace_id));
+create policy inv_insert on public.invites for insert with check (private.is_manager(workspace_id));
 drop policy if exists inv_delete on public.invites;
-create policy inv_delete on public.invites for delete using (public.is_manager(workspace_id));
+create policy inv_delete on public.invites for delete using (private.is_manager(workspace_id));
 
 -- records: every member reads and adds/edits invoices, receipts and expenses.
 -- Only owners/admins delete records or change the business profile.
 drop policy if exists rec_select on public.records;
-create policy rec_select on public.records for select using (public.is_member(workspace_id));
+create policy rec_select on public.records for select using (private.is_member(workspace_id));
 drop policy if exists rec_insert on public.records;
 create policy rec_insert on public.records for insert
-  with check (public.is_member(workspace_id) and (kind <> 'settings' or public.is_manager(workspace_id)));
+  with check (private.is_member(workspace_id) and (kind <> 'settings' or private.is_manager(workspace_id)));
 drop policy if exists rec_update on public.records;
 create policy rec_update on public.records for update
-  using (public.is_member(workspace_id) and (kind <> 'settings' or public.is_manager(workspace_id)))
-  with check (public.is_member(workspace_id) and (kind <> 'settings' or public.is_manager(workspace_id)));
+  using (private.is_member(workspace_id) and (kind <> 'settings' or private.is_manager(workspace_id)))
+  with check (private.is_member(workspace_id) and (kind <> 'settings' or private.is_manager(workspace_id)));
 drop policy if exists rec_delete on public.records;
-create policy rec_delete on public.records for delete using (public.is_manager(workspace_id));
+create policy rec_delete on public.records for delete using (private.is_manager(workspace_id));
 
 -- ============ Functions the app calls ============
 
@@ -178,7 +182,7 @@ end $$;
 create or replace function public.transfer_ownership(p_workspace uuid, p_user uuid)
 returns void language plpgsql security definer set search_path = public as $$
 begin
-  if public.member_role(p_workspace) <> 'owner' then raise exception 'Only the owner can do this'; end if;
+  if private.member_role(p_workspace) <> 'owner' then raise exception 'Only the owner can do this'; end if;
   if not exists (select 1 from members where workspace_id = p_workspace and user_id = p_user) then
     raise exception 'That person is not on this team';
   end if;
@@ -216,7 +220,7 @@ create table if not exists public.profiles (
 alter table public.profiles enable row level security;
 
 -- True when the signed-in person and `other` belong to at least one shared business.
-create or replace function public.shares_workspace(other uuid)
+create or replace function private.shares_workspace(other uuid)
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from members a join members b on a.workspace_id = b.workspace_id
@@ -225,7 +229,7 @@ $$;
 
 -- You see your own profile and your teammates'; you only change your own.
 drop policy if exists prof_select on public.profiles;
-create policy prof_select on public.profiles for select using (id = auth.uid() or public.shares_workspace(id));
+create policy prof_select on public.profiles for select using (id = auth.uid() or private.shares_workspace(id));
 drop policy if exists prof_insert on public.profiles;
 create policy prof_insert on public.profiles for insert with check (id = auth.uid());
 drop policy if exists prof_update on public.profiles;
@@ -269,11 +273,23 @@ end $$;
 revoke all on function public.save_profile(text, text, text, text) from public, anon;
 revoke all on function public.sync_my_email() from public, anon;
 revoke all on function public.delete_my_account() from public, anon;
-revoke all on function public.shares_workspace(uuid) from public, anon;
+revoke all on function private.shares_workspace(uuid) from public, anon;
+revoke all on function private.is_member(uuid) from public, anon;
+revoke all on function private.member_role(uuid) from public, anon;
+revoke all on function private.is_manager(uuid) from public, anon;
 grant execute on function public.save_profile(text, text, text, text) to authenticated;
 grant execute on function public.sync_my_email() to authenticated;
 grant execute on function public.delete_my_account() to authenticated;
-grant execute on function public.shares_workspace(uuid) to authenticated;
+grant execute on function private.shares_workspace(uuid) to authenticated;
+grant execute on function private.is_member(uuid) to authenticated;
+grant execute on function private.member_role(uuid) to authenticated;
+grant execute on function private.is_manager(uuid) to authenticated;
+
+-- ============ API access ============
+-- Signed-in people reach the tables (row-level security above decides what
+-- they see); signed-out visitors reach nothing.
+revoke all on public.workspaces, public.members, public.invites, public.records, public.profiles from anon;
+grant select, insert, update, delete on public.workspaces, public.members, public.invites, public.records, public.profiles to authenticated;
 
 -- ============ Live sync ============
 do $$ begin
