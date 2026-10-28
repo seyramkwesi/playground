@@ -677,6 +677,11 @@ function bankRows(pd) {
   if (pd.hasBank) return BANK_FIELDS.map(([k, l]) => [l, pd.bank[k]]).filter(r => r[1]);
   return pd.legacyBank ? [["Details", pd.legacyBank]] : [];
 }
+const PAY_SHOW = [["both","Mobile Money and bank"],["momo","Mobile Money only"],["bank","Bank only"],["none","Don't show payment details"]];
+function payFor(inv) {
+  const pd = payDetails(), show = (inv && inv.payShow) || settings().payDefault || "both";
+  return {mr:(show === "both" || show === "momo") ? momoRows(pd) : [], br:(show === "both" || show === "bank") ? bankRows(pd) : []};
+}
 function invStatus(inv) {
   if (inv.status === "paid") return "paid";
   if (inv.status === "sent" && inv.dueDate && inv.dueDate < today()) return "overdue";
@@ -1098,7 +1103,10 @@ function sPayments() {
   const mNum = m.number || (pd.legacyMomo && !pd.hasMomo ? pd.legacyMomo : ""), bName = bk.bankName || (pd.legacyBank && !pd.hasBank ? pd.legacyBank : "");
   const preview = (rows) => rows.length ? `<div class="kv" style="margin-top:14px">${rows.map(([l, v]) => `<span>${esc(l)}</span><b>${esc(v)}</b>`).join("")}</div>` : "";
   return `${CLOUD && !ed ? `<div class="banner lav"><span>Owners and admins manage payment details.</span></div>` : ""}
-  <p class="muted" style="margin:0">Shown in small print under "Payment details" on every unpaid invoice, its PDF and the text you share. Leave a form empty to leave that method off.</p>
+  <p class="muted" style="margin:0">Shown in small print under "Payment details" on unpaid invoices, their PDFs and the text you share. You choose which to show for each client on the invoice itself.</p>
+  <section class="panel"><div class="panel-head"><h2>Default for new invoices</h2></div>
+    <div class="field"><label for="payDefault">Show on new invoices</label><select id="payDefault" ${ed ? "" : "disabled"}>${PAY_SHOW.map(([k, l]) => `<option value="${k}" ${(settings().payDefault || "both") === k ? "selected" : ""}>${l}</option>`).join("")}</select>
+      <span class="muted">You can change it on any invoice.</span></div></section>
   <section class="panel"><div class="panel-head"><h2>Mobile Money</h2><span class="sub">${pd.hasMomo ? "Shown on invoices" : "Not set"}</span></div>
     <form id="momoForm"><fieldset class="form-grid" ${ed ? "" : "disabled"}>
       <div class="field"><label for="mmName">Account name</label><input type="text" id="mmName" name="name" maxlength="80" value="${esc(m.name)}" placeholder="Name registered on the wallet"></div>
@@ -1234,7 +1242,7 @@ function bizBlock(st) {
     <div class="p-muted" style="white-space:pre-line">${esc([b.address, b.phone, b.email].filter(Boolean).join("\n"))}</div></div>`;
 }
 function payBlock(inv) {
-  const pd = payDetails(), mr = momoRows(pd), br = bankRows(pd);
+  const {mr, br} = payFor(inv);
   if (!mr.length && !br.length) return "";
   const col = (title, rows) => `<div class="pay-col"><div class="pay-title">${title}</div><div class="p-meta pay-kv">${rows.map(([l, v]) => `<span>${esc(l)}</span><span>${esc(v)}</span>`).join("")}</div></div>`;
   return `<div class="p-sec pay-box"><div class="lbl">Payment details</div>
@@ -1272,7 +1280,7 @@ function invoiceShareText(inv) {
   const st = settings(), t = invoiceTotals(inv), b = st.business;
   return tidy([`Invoice ${inv.number} from ${b.name || "us"}`, `To: ${inv.client?.name || ""}`, "", ...(inv.items || []).map(it => `• ${it.desc} — ${num(it.qty)} × ${moneyPlain(num(it.price))}`), "",
     `Total due: ${moneyPlain(t.total)}`, `Due date: ${fmtDate(inv.dueDate)}`,
-    ...(() => { const pd = payDetails(), mr = momoRows(pd), br = bankRows(pd), out = [];
+    ...(() => { const {mr, br} = payFor(inv), out = [];
       if (mr.length || br.length) out.push("", "Payment details");
       if (mr.length) out.push("Mobile Money", ...mr.map(([l, v]) => `  ${l}: ${v}`));
       if (br.length) out.push("Bank", ...br.map(([l, v]) => `  ${l}: ${v}`));
@@ -1358,7 +1366,7 @@ async function pdfDoc(kind, rec) {
     y += 50;
 
     // payment details + notes
-    const pd = payDetails(), mr = momoRows(pd), br = bankRows(pd);
+    const {mr, br} = payFor(rec);
     if ((mr.length || br.length) && !paid) {
       // Small print, two columns; measured first so it never splits across pages.
       const cols = [mr.length && ["Mobile Money", mr], br.length && ["Bank", br]].filter(Boolean);
@@ -1466,6 +1474,14 @@ function mInvoiceForm(m) {
     <div class="form-grid">
       <div class="field"><label for="fDisc">Discount (${st.currency})</label><input type="number" inputmode="decimal" id="fDisc" name="discount" value="${num(d.discount) || ""}" min="0" step="any"></div>
       <div class="field"><label for="fTax">Tax / VAT %</label><input type="number" inputmode="decimal" id="fTax" name="taxRate" value="${num(d.taxRate)}" min="0" step="0.5"></div>
+      <div class="field full"><label for="fPayShow">Payment details for this client</label>${(() => {
+        const pd = payDetails(), has = {momo:!!momoRows(pd).length, bank:!!bankRows(pd).length};
+        if (!has.momo && !has.bank) return `<span class="muted">No payment details yet. Add Mobile Money or bank details in <a class="sub" href="#settings-payments" data-action="close">Settings → Payment details</a>.</span>`;
+        const ok = k => k === "none" || (k === "both" ? has.momo && has.bank : has[k]);
+        let cur = d.payShow || settings().payDefault || "both";
+        if (!ok(cur)) cur = has.momo && has.bank ? "both" : has.bank ? "bank" : "momo";
+        return `<select id="fPayShow" name="payShow">${PAY_SHOW.map(([k, l]) => `<option value="${k}" ${cur === k ? "selected" : ""} ${ok(k) ? "" : "disabled"}>${l}${ok(k) ? "" : " (not set up)"}</option>`).join("")}</select>`;
+      })()}</div>
       <div class="field full"><label for="fNotes">Notes on the invoice</label><textarea id="fNotes" name="notes" rows="2">${esc(d.notes)}</textarea></div>
     </div>
     <div class="totals" id="invTotals">${totalsHTML(invoiceTotals(d), d)}</div>
@@ -1541,7 +1557,7 @@ function syncInvoiceDraft() {
   const d = S.modal.draft; readForm(f, d);
   f.querySelectorAll("[data-item]").forEach(el => { d.items[+el.dataset.item][el.dataset.k] = el.dataset.k === "desc" ? el.value : num(el.value); });
 }
-const newInvoiceDraft = () => { const t = today(), st = settings(); return {id:rid("inv"), kind:"invoice", number:nextNumber("invoice"), status:"draft", issueDate:t, dueDate:addDays(t, st.terms === undefined || st.terms === "" ? 14 : num(st.terms)),
+const newInvoiceDraft = () => { const t = today(), st = settings(); return {id:rid("inv"), kind:"invoice", number:nextNumber("invoice"), status:"draft", payShow:st.payDefault || "both", issueDate:t, dueDate:addDays(t, st.terms === undefined || st.terms === "" ? 14 : num(st.terms)),
   client:{name:"", email:"", phone:"", address:""}, items:[{desc:"", qty:1, price:0}], discount:0, taxRate:num(settings().taxRate), notes:st.invoiceNotes !== undefined ? st.invoiceNotes : "Thank you for your business.", createdAt:t}; };
 const newExpenseDraft = () => ({id:rid("exp"), kind:"expense", date:today(), vendor:"", amount:0, category:CATEGORIES[0], method:METHODS[0], note:""});
 const newReceiptDraft = inv => ({id:rid("rct"), kind:"receipt", number:nextNumber("receipt"), date:today(), payer:inv ? inv.client?.name || "" : "",
@@ -1733,6 +1749,7 @@ document.addEventListener("change", async e => {
     const {error} = await sb.from("members").update({role:t.value}).eq("workspace_id", A.ws).eq("user_id", t.dataset.roleFor);
     toast(error ? "Couldn't change role: " + error.message : "Role updated"); loadTeam();
   }
+  else if (t.id === "payDefault") { if (canEditBiz()) { saveSettings({payDefault:t.value}); toast("Default saved"); } }
   else if (t.id === "avatarInput") {
     try {
       const url = await readAvatar(t.files[0]), p = {...myProfile(), ...readProfileForm(), avatar:url}; delete p.email;
