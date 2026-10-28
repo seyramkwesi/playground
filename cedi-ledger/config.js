@@ -6,7 +6,7 @@ window.CEDI_CONFIG = {
   supabaseUrl: "https://xtmqkcatnoyrdsyyulag.supabase.co",
   supabaseAnonKey: "sb_publishable_VPIQV7H0fLzpDkyfmHmN3A_DDJQj4Ho",
   // Set to true once Google is switched on under Authentication > Providers in Supabase.
-  googleEnabled: false,
+  googleEnabled: true,
   // Set to true once the Supabase email templates include {{ .Token }} (needs custom SMTP).
   emailCodes: false
 };

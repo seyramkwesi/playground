@@ -1784,7 +1784,7 @@ function renderGate() {
          <p class="muted" style="text-align:center">Joining a teammate's business? Open the invite link they sent you.</p>
          <p class="byline" style="text-align:center">Signed in as ${esc(A.user.email)} · <button class="linkbtn" data-action="sign-out">Sign out</button></p>`;
   }
-  $("#gate").innerHTML = `<div class="gate-card">${body}</div>`;
+  $("#gate").innerHTML = `<div class="gate-card">${body}<p class="byline" style="text-align:center;margin:4px 0 0"><a class="sub" href="privacy.html">Privacy policy</a></p></div>`;
 }
 function gateSet(patch) { Object.assign(A.g, patch); renderGate(); }
 
