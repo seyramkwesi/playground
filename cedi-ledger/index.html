@@ -1723,6 +1723,7 @@ function friendlyAuthError(e) {
   if (/provider is not enabled|unsupported provider/i.test(m)) return "Google sign-in isn't switched on yet. Use email instead.";
   return m || "Something went wrong. Try again.";
 }
+const isStandalone = () => { try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch { return false; } };
 function showGate(on) { if (!on) $("#gate").innerHTML = ""; $("#gate").hidden = !on; $("#app").hidden = on; $("#tabbar").hidden = on; if (on) { S.modal = null; renderModal(); } }
 const brandBlock = (title, sub) => `<div class="gate-brand"><div class="brand-mark"><span>₵</span></div><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ""}</div>`;
 const msgs = () => (A.g.err ? `<div class="msg err" role="alert">${esc(A.g.err)}</div>` : "") + (A.g.ok ? `<div class="msg ok" role="status">${esc(A.g.ok)}</div>` : "");
@@ -1737,13 +1738,16 @@ function renderGate() {
     const inv = lsGet("cedi-pending-invite");
     body = brandBlock(g.tab === "signup" ? "Create your account" : "Welcome back", inv ? "Sign in or create an account to join your team's ledger." : "Invoices, receipts and expenses for your whole team.");
     if (g.mode === "otp-sent") {
-      body += msgs() + `<form id="otpForm"><p>We emailed a sign-in link and a 6-digit code to <b>${esc(g.otpEmail)}</b>. Tap the link, or type the code here. The code works best inside the installed app.</p>
+      body += msgs() + (CFG.emailCodes ? `<form id="otpForm"><p>We emailed a sign-in link and a 6-digit code to <b>${esc(g.otpEmail)}</b>. Tap the link, or type the code here. The code works best inside the installed app.</p>
         <div class="field"><label for="otpCode">6-digit code</label><input type="text" id="otpCode" class="code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required></div>
-        <button class="btn primary block" ${busy}>Sign in</button></form>
-        <div class="gate-links"><button class="linkbtn" data-action="g-mode" data-v="password">Use a password instead</button><button class="linkbtn" data-action="g-resend">Send a new code</button></div>`;
+        <button class="btn primary block" ${busy}>Sign in</button></form>`
+        : `<p>We emailed a sign-in link to <b>${esc(g.otpEmail)}</b>. Open it on this device to sign in. The link works once and expires after an hour.</p>
+        ${isStandalone() ? `<div class="msg ok">On iPhone, email links open in Safari rather than this app. To sign in here, use your password instead.</div>` : ""}`)
+        + `<div class="gate-links"><button class="linkbtn" data-action="g-mode" data-v="password">Use a password instead</button><button class="linkbtn" data-action="g-resend">Send a new ${CFG.emailCodes ? "code" : "link"}</button></div>`;
     } else if (g.mode === "magic") {
       body += msgs() + `<form id="magicForm"><div class="field"><label for="gEmail">Email</label><input type="email" id="gEmail" autocomplete="email" value="${esc(g.email)}" required></div>
-        <button class="btn primary block" ${busy}>Email me a sign-in code</button></form>
+        ${isStandalone() && !CFG.emailCodes ? `<p class="muted">The link will open in Safari. To sign in inside this app, use your password.</p>` : ""}
+        <button class="btn primary block" ${busy}>Email me a sign-in ${CFG.emailCodes ? "code" : "link"}</button></form>
         <div class="gate-links"><button class="linkbtn" data-action="g-mode" data-v="password">Use a password instead</button></div>`;
     } else if (g.mode === "forgot") {
       body += msgs() + `<form id="forgotForm"><p>Enter your email and we'll send you a link to set a new password.</p>
@@ -1758,7 +1762,7 @@ function renderGate() {
           <div class="field"><label for="gEmail">Email</label><input type="email" id="gEmail" autocomplete="email" value="${esc(g.email)}" required></div>
           <div class="field"><label for="gPass">Password</label><input type="password" id="gPass" autocomplete="${g.tab === "signup" ? "new-password" : "current-password"}" minlength="${g.tab === "signup" ? 8 : 1}" required>${g.tab === "signup" ? '<span class="muted">At least 8 characters</span>' : ""}</div>
           <button class="btn primary block" ${busy}>${g.tab === "signup" ? "Create account" : "Sign in"}</button></form>
-        <div class="gate-links"><button class="linkbtn" data-action="g-mode" data-v="magic">Email me a sign-in code instead</button>${g.tab === "signin" ? '<button class="linkbtn" data-action="g-mode" data-v="forgot">Forgot password?</button>' : ""}</div>`;
+        <div class="gate-links"><button class="linkbtn" data-action="g-mode" data-v="magic">Email me a sign-in ${CFG.emailCodes ? "code" : "link"} instead</button>${g.tab === "signin" ? '<button class="linkbtn" data-action="g-mode" data-v="forgot">Forgot password?</button>' : ""}</div>`;
     }
   } else if (A.phase === "recovery") {
     body = brandBlock("Set a new password", "Choose a new password for " + esc(A.user?.email || "your account") + ".") + msgs()
@@ -1846,7 +1850,7 @@ async function gateSubmit(id) {
       if (id === "magicForm") g.email = val("gEmail").trim();
       const email = id === "resend" ? g.otpEmail : g.email;
       const {error} = await sb.auth.signInWithOtp({email, options:{emailRedirectTo:redirectURL(), shouldCreateUser:true}}); if (error) throw error;
-      return gateSet({busy:false, mode:"otp-sent", otpEmail:email, ok:id === "resend" ? "New code sent." : ""});
+      return gateSet({busy:false, mode:"otp-sent", otpEmail:email, ok:id === "resend" ? (CFG.emailCodes ? "New code sent." : "New link sent.") : ""});
     } else if (id === "otpForm") {
       const {error} = await sb.auth.verifyOtp({email:g.otpEmail, token:val("otpCode").replace(/\s/g, ""), type:"email"}); if (error) throw error;
     } else if (id === "forgotForm") {
